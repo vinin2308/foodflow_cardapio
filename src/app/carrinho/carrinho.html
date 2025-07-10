@@ -1,0 +1,91 @@
+<div class="carrinho-overlay" (click)="onFechar()">
+  <div class="carrinho-sidebar" (click)="$event.stopPropagation()">
+    <!-- Header do Carrinho -->
+    <div class="carrinho-header">
+      <h3>🛒 Seu Pedido</h3>
+      <button class="btn-fechar" (click)="onFechar()">×</button>
+    </div>
+
+    <!-- Informações da Mesa -->
+    <div class="mesa-info" *ngIf="comanda">
+      <span class="mesa">Mesa {{ comanda.mesa }}</span>
+      <span class="status" [class]="comanda.status">{{ getStatusTexto(comanda.status) }}</span>
+    </div>
+
+    <!-- Lista de Itens -->
+    <div class="carrinho-content">
+      <div *ngIf="carrinhoVazio" class="carrinho-vazio">
+        <div class="vazio-icon">🛒</div>
+        <p>Seu carrinho está vazio</p>
+        <small>Adicione itens do cardápio para começar seu pedido</small>
+      </div>
+
+      <div *ngIf="!carrinhoVazio" class="itens-lista">
+        <div class="item-carrinho" *ngFor="let item of comanda?.itens">
+          <div class="item-info">
+            <h4>{{ item.item.nome }}</h4>
+            <p class="item-preco">{{ formatarPreco(item.item.preco) }}</p>
+            <p class="item-observacao" *ngIf="item.observacao">
+              <em>Obs: {{ item.observacao }}</em>
+            </p>
+          </div>
+
+          <div class="item-controles">
+            <div class="quantidade-controles">
+              <button 
+                class="btn-quantidade" 
+                (click)="diminuirQuantidade(item)"
+                [disabled]="item.quantidade <= 1"
+              >
+                −
+              </button>
+              <span class="quantidade">{{ item.quantidade }}</span>
+              <button 
+                class="btn-quantidade" 
+                (click)="aumentarQuantidade(item)"
+              >
+                +
+              </button>
+            </div>
+
+            <div class="item-subtotal">
+              {{ formatarPreco(calcularSubtotal(item)) }}
+            </div>
+
+            <button 
+              class="btn-remover" 
+              (click)="removerItem(item)"
+              title="Remover item"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer com Total e Botão de Confirmar -->
+    <div class="carrinho-footer" *ngIf="!carrinhoVazio">
+      <div class="resumo-pedido">
+        <div class="linha-resumo">
+          <span>Itens ({{ quantidadeTotalItens }})</span>
+          <span>{{ formatarPreco(comanda?.total || 0) }}</span>
+        </div>
+        <div class="linha-total">
+          <strong>Total</strong>
+          <strong>{{ formatarPreco(comanda?.total || 0) }}</strong>
+        </div>
+      </div>
+
+      <button 
+        class="btn-confirmar"
+        (click)="confirmarPedido()"
+        [disabled]="confirmandoPedido"
+      >
+        <span *ngIf="!confirmandoPedido">Confirmar Pedido</span>
+        <span *ngIf="confirmandoPedido">Confirmando...</span>
+      </button>
+    </div>
+  </div>
+</div>
+

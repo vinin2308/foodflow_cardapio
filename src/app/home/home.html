@@ -1,0 +1,64 @@
+<div class="home-container">
+  <div class="logo-section">
+    <h1 class="logo">FoodFlow</h1>
+  </div>
+
+  <div class="form-section">
+    <div class="form-group">
+      <label for="mesa">Mesa</label>
+      <input 
+        type="text" 
+        id="mesa" 
+        [(ngModel)]="mesa" 
+        placeholder="Número da mesa"
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="nome">Nome (opcional)</label>
+      <input 
+        type="text" 
+        id="nome" 
+        [(ngModel)]="nome" 
+        placeholder="Seu nome"
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group" *ngIf="isPrimeiroAcesso">
+      <label for="numeroPessoas">Número de pessoas</label>
+      <input 
+        type="number" 
+        id="numeroPessoas" 
+        [(ngModel)]="numeroPessoas" 
+        placeholder="Quantas pessoas?"
+        min="1"
+        class="form-input"
+      />
+    </div>
+
+    <div class="buttons-section">
+      <button 
+        class="btn btn-primary" 
+        (click)="iniciarPedido()"
+        [disabled]="!mesa"
+      >
+        Iniciar Pedido
+      </button>
+
+      <button 
+        class="btn btn-secondary" 
+        (click)="entrarPedidoExistente()"
+        [disabled]="!mesa"
+      >
+        Entrar em Pedido Existente
+      </button>
+    </div>
+
+    <div class="info-message">
+      <p>Todos os pedidos desta mesa são enviados juntos para a cozinha.</p>
+    </div>
+  </div>
+</div>
+

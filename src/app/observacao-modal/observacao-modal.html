@@ -1,0 +1,38 @@
+<div class="modal-overlay" (click)="onCancelar()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Adicionar Observação</h3>
+      <button class="btn-fechar" (click)="onCancelar()">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="item">
+      <div class="item-info">
+        <h4>{{ item.nome }}</h4>
+        <p class="item-descricao">{{ item.descricao }}</p>
+        <span class="item-preco">{{ formatarPreco(item.preco) }}</span>
+      </div>
+
+      <div class="observacao-section">
+        <label for="observacao">Observação (opcional):</label>
+        <textarea
+          id="observacao"
+          [(ngModel)]="observacao"
+          placeholder="Ex: Sem cebola, molho à parte, ponto da carne..."
+          rows="4"
+          maxlength="200"
+        ></textarea>
+        <small class="char-count">{{ observacao.length }}/200 caracteres</small>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="onCancelar()">
+        Cancelar
+      </button>
+      <button class="btn btn-primary" (click)="onConfirmar()">
+        Adicionar ao Carrinho
+      </button>
+    </div>
+  </div>
+</div>
+
