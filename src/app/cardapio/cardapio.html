@@ -10,7 +10,7 @@
     </div>
     
     <!-- Botão do Carrinho -->
-    <button class="carrinho-btn" (click)="toggleCarrinho()">
+    <button class="carrinho-btn" (click)="toggleCarrinho()" id="abrir-carrinho">
       🛒
       <span class="badge" *ngIf="quantidadeTotalItens > 0">{{ quantidadeTotalItens }}</span>
     </button>
@@ -23,6 +23,7 @@
       class="categoria-btn"
       [class.ativa]="categoriaAtiva === categoria.id"
       (click)="selecionarCategoria(categoria.id)"
+      [attr.id]="'categoria-' + categoria.id"
     >
       <span class="icone">{{ categoria.icone }}</span>
       <span class="nome">{{ categoria.nome }}</span>
@@ -41,6 +42,7 @@
           <div 
             class="item-card" 
             *ngFor="let item of getItensPorCategoria(categoria.id)"
+            id="item-card"
           >
             <div class="item-info">
               <h3 class="item-nome">{{ item.nome }}</h3>
@@ -53,12 +55,14 @@
                 class="btn-observacao" 
                 (click)="abrirModalObservacao(item)"
                 title="Adicionar observação"
+                id="adicionar-observacao"
               >
                 ✏️
               </button>
               <button 
                 class="btn-adicionar" 
                 (click)="adicionarItem(item)"
+                id="adicionar-item"
               >
                 + Adicionar
               </button>

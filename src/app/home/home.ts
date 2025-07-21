@@ -28,17 +28,25 @@ export class HomeComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       if (params['mesa']) {
         this.mesa = params['mesa'];
+        // Ao receber a mesa do QR Code, verifica imediatamente o status de acesso
+        this.onMesaChange();
       }
     });
+  }
 
-    // Verificar se é o primeiro acesso da mesa
+  onMesaChange() {
     this.verificarPrimeiroAcesso();
   }
 
   verificarPrimeiroAcesso() {
-    // Verificar se já existe uma comanda para esta mesa
-    const comandaExistente = localStorage.getItem(`comanda-${this.mesa}`);
-    this.isPrimeiroAcesso = !comandaExistente;
+    // A verificação só faz sentido se houver um número de mesa preenchido
+    if (this.mesa && this.mesa.trim() !== '') {
+      const comandaExistente = localStorage.getItem(`comanda-${this.mesa}`);
+      this.isPrimeiroAcesso = !comandaExistente;
+    } else {
+      // Se a mesa estiver vazia, o padrão é ser o primeiro acesso.
+      this.isPrimeiroAcesso = true;
+    }
   }
 
   iniciarPedido() {
@@ -114,4 +122,3 @@ export class HomeComponent implements OnInit {
     }
   }
 }
-
