@@ -26,7 +26,7 @@
       />
     </div>
 
-    <div class="form-group" *ngIf="isPrimeiroAcesso">
+    <div class="form-group">
       <label for="numeroPessoas">Número de pessoas</label>
       <input 
         type="number" 
@@ -41,8 +41,9 @@
     <div class="buttons-section">
       <button 
         class="btn btn-primary" 
+        id="iniciar-pedido"
         (click)="iniciarPedido()"
-        [disabled]="!mesa"
+        [disabled]="!mesa || !numeroPessoas || numeroPessoas < 1"
       >
         Iniciar Pedido
       </button>
@@ -50,7 +51,7 @@
       <button 
         class="btn btn-secondary" 
         (click)="entrarPedidoExistente()"
-        [disabled]="!mesa"
+        [disabled]="!mesa || !numeroPessoas || numeroPessoas < 1"
       >
         Entrar em Pedido Existente
       </button>
@@ -61,4 +62,3 @@
     </div>
   </div>
 </div>
-

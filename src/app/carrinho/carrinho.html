@@ -3,7 +3,7 @@
     <!-- Header do Carrinho -->
     <div class="carrinho-header">
       <h3>🛒 Seu Pedido</h3>
-      <button class="btn-fechar" (click)="onFechar()">×</button>
+      <button class="btn-fechar" (click)="onFechar()" id="fechar-carrinho">×</button>
     </div>
 
     <!-- Informações da Mesa -->
@@ -36,6 +36,7 @@
                 class="btn-quantidade" 
                 (click)="diminuirQuantidade(item)"
                 [disabled]="item.quantidade <= 1"
+                id="diminuir-quantidade"
               >
                 −
               </button>
@@ -43,6 +44,7 @@
               <button 
                 class="btn-quantidade" 
                 (click)="aumentarQuantidade(item)"
+                id="aumentar-quantidade"
               >
                 +
               </button>
@@ -56,6 +58,7 @@
               class="btn-remover" 
               (click)="removerItem(item)"
               title="Remover item"
+              id="remover-item"
             >
               🗑️
             </button>
@@ -81,6 +84,7 @@
         class="btn-confirmar"
         (click)="confirmarPedido()"
         [disabled]="confirmandoPedido"
+        id="confirmar-pedido"
       >
         <span *ngIf="!confirmandoPedido">Confirmar Pedido</span>
         <span *ngIf="confirmandoPedido">Confirmando...</span>
@@ -88,4 +92,3 @@
     </div>
   </div>
 </div>
-
