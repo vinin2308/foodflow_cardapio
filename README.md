@@ -1,4 +1,4 @@
-# FoodFlow - Frontend Angular
+# FoodFlow
 
 ## 📋 Descrição do Projeto
 
