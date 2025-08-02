@@ -1,0 +1,24 @@
+<div class="cozinha-container">
+  <h1>Pedidos da Cozinha</h1>
+  <div *ngIf="pedidos.length === 0" class="sem-pedidos">
+    Nenhum pedido recebido.
+  </div>
+  <div *ngFor="let pedido of pedidos" class="pedido-card">
+    <h2>Mesa: {{ pedido.mesa }}</h2>
+    <p>Status: <strong>{{ pedido.status }}</strong></p>
+    <ul>
+      <li *ngFor="let item of pedido.itens">
+        <strong>{{ item.item.nome }}</strong> x{{ item.quantidade }}
+        <span *ngIf="item.observacao"> - <em>{{ item.observacao }}</em></span>
+      </li>
+    </ul>
+    <div class="tempo-estimado-section">
+      <label for="tempo-{{pedido.id}}">Tempo estimado (min):</label>
+      <input type="number" id="tempo-{{pedido.id}}" [(ngModel)]="pedido.tempoEstimado" min="1" />
+      <button (click)="confirmarTempo(pedido)">Confirmar</button>
+    </div>
+    <div *ngIf="pedido.tempoEstimadoConfirmado" class="tempo-confirmado">
+      Tempo confirmado: <strong>{{ pedido.tempoEstimado }} min</strong>
+    </div>
+  </div>
+</div>

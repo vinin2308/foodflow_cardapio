@@ -1,0 +1,35 @@
+.cozinha-container {
+  max-width: 700px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 32px;
+}
+
+.pedido-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f9f9f9;
+}
+
+.tempo-estimado-section {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tempo-confirmado {
+  margin-top: 8px;
+  color: #2e7d32;
+  font-weight: bold;
+}
+
+.sem-pedidos {
+  text-align: center;
+  color: #888;
+  margin: 40px 0;
+}
