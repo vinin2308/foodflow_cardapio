@@ -125,4 +125,5 @@ Para dúvidas ou sugestões sobre o projeto, consulte a documentação do Angula
 ---
 
 **Desenvolvido com ❤️ usando Angular e design minimalista**
+Alteração da estruturação da pastas
 
