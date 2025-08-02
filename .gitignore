@@ -40,3 +40,35 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Python
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.env
+.venv/
+venv/
+backend/foodflow/foodflow_app/__pycache__/
+
+# Django
+*.log
+staticfiles/
+media/
+
+# Testes e relatórios
+coverage/
+htmlcov/
+*.cover
+*.coverage
+*.egg-info/
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Backup
+*.bak
+*.tmp
