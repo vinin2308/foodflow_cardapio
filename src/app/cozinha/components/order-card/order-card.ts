@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Order, OrderStatus } from '../../models/pedidos.model';
-import { OrderService } from '../../services/pedidos';
+import { Order, OrderStatus } from '../../../models/pedidos.model';
+import { OrderService } from '../../../services/pedidos';
 
 @Component({
   selector: 'app-order-card',

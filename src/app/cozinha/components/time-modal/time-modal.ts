@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Order } from '../../models/pedidos.model';
+import { Order } from '../../../models/pedidos.model';
 
 @Component({
   selector: 'app-time-modal',

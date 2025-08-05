@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { Order, OrderStatus, TimeModalData } from '../models/pedidos.model';
 import { OrderService } from '../services/pedidos';
-import { HeaderComponent } from '../components/header/header';
-import { OrderCardComponent } from '../components/order-card/order-card';
-import { TimeModalComponent } from '../components/time-modal/time-modal';
+import { HeaderComponent } from './components/header/header';
+import { OrderCardComponent } from './components/order-card/order-card';
+import { TimeModalComponent } from './components/time-modal/time-modal';
 
 interface Notification {
   show: boolean;
