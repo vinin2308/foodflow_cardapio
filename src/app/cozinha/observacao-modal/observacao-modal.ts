@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ItemCardapio } from '../models/item-cardapio.model';
+import { ItemCardapio } from '../../models/item-cardapio.model';
 
 @Component({
   selector: 'app-observacao-modal',

@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { CarrinhoService } from '../services/carrinho';
 import { CarrinhoComponent } from '../carrinho/carrinho';
-import { ObservacaoModalComponent } from '../observacao-modal/observacao-modal';
+import { ObservacaoModalComponent } from '../cozinha/observacao-modal/observacao-modal';
 import { ItemCardapio, Comanda } from '../models/item-cardapio.model';
 import { CARDAPIO_MOCK, CATEGORIAS } from '../data/cardapio-mock';
 
