@@ -6,7 +6,7 @@ import { CozinhaComponent } from './cozinha/cozinha';
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'cardapio', component: CardapioComponent },
-  {path: 'cozinha', component: CozinhaComponent},
+  { path: 'cozinha', component: CozinhaComponent }, 
   { path: '**', redirectTo: '' }
 ];
 

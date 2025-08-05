@@ -65,9 +65,8 @@ htmlcov/
 *.coverage
 *.egg-info/
 
-# Docker
+# Dockerr
 *.pid
-docker-compose.override.yml
 
 # Backup
 *.bak

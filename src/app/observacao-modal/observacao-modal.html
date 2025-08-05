@@ -2,7 +2,7 @@
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>Adicionar Observação</h3>
-      <button class="btn-fechar" (click)="onCancelar()" id="fechar-modal-observacao">×</button>
+      <button class="btn-fechar" (click)="onCancelar()">×</button>
     </div>
 
     <div class="modal-body" *ngIf="item">
@@ -26,10 +26,10 @@
     </div>
 
     <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="onCancelar()" id="cancelar-observacao">
+      <button class="btn btn-secondary" (click)="onCancelar()">
         Cancelar
       </button>
-      <button class="btn btn-primary" (click)="onConfirmar()" id="confirmar-observacao">
+      <button class="btn btn-primary" (click)="onConfirmar()">
         Adicionar ao Carrinho
       </button>
     </div>

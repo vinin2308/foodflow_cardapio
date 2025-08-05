@@ -1,0 +1,37 @@
+<div class="modal" [class.show]="isVisible" (click)="onBackdropClick($event)">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Definir Tempo de Preparo</h3>
+      <button class="close-btn" (click)="onClose()" id="btn-fechar-modal">&times;</button>
+    </div>
+    
+    <div class="modal-body" *ngIf="order">
+      <div class="dish-info">
+        <h4>{{ order.dishName }}</h4>
+        <p>{{ order.orderNumber }}</p>
+      </div>
+      
+      <div class="time-input-group">
+        <label for="prepTime">Tempo estimado (minutos):</label>
+        <div class="time-controls">
+          <button class="time-btn" (click)="adjustTime(-5)" id="btn-menos-5">-5</button>
+          <button class="time-btn" (click)="adjustTime(-1)" id="btn-menos-1">-1</button>
+          <input 
+            type="number" 
+            id="prepTime" 
+            min="1" 
+            max="120" 
+            [(ngModel)]="prepTime">
+          <button class="time-btn" (click)="adjustTime(1)" id="btn-mais-1">+1</button>
+          <button class="time-btn" (click)="adjustTime(5)" id="btn-mais-5">+5</button>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="onClose()" id="btn-cancelar-modal">Cancelar</button>
+        <button class="btn-confirm" (click)="onConfirm()" id="btn-confirmar-modal">Iniciar Preparo</button>
+      </div>
+    </div>
+  </div>
+</div>
+

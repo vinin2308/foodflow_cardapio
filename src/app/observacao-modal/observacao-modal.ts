@@ -27,7 +27,6 @@ export class ObservacaoModalComponent {
     this.observacao = '';
   }
 
-  // Formatar preço
   formatarPreco(preco: number): string {
     return preco.toLocaleString('pt-BR', {
       style: 'currency',

@@ -1,24 +1,63 @@
-<div class="cozinha-container">
-  <h1>Pedidos da Cozinha</h1>
-  <div *ngIf="pedidos.length === 0" class="sem-pedidos">
-    Nenhum pedido recebido.
-  </div>
-  <div *ngFor="let pedido of pedidos" class="pedido-card">
-    <h2>Mesa: {{ pedido.mesa }}</h2>
-    <p>Status: <strong>{{ pedido.status }}</strong></p>
-    <ul>
-      <li *ngFor="let item of pedido.itens">
-        <strong>{{ item.item.nome }}</strong> x{{ item.quantidade }}
-        <span *ngIf="item.observacao"> - <em>{{ item.observacao }}</em></span>
-      </li>
-    </ul>
-    <div class="tempo-estimado-section">
-      <label for="tempo-{{pedido.id}}">Tempo estimado (min):</label>
-      <input type="number" id="tempo-{{pedido.id}}" [(ngModel)]="pedido.tempoEstimado" min="1" />
-      <button (click)="confirmarTempo(pedido)">Confirmar</button>
+<app-header></app-header>
+
+<main class="main-content">
+  <div class="orders-container">
+    <div class="orders-header">
+      <h2>Pedidos em Andamento</h2>
+      <div class="filter-buttons">
+        <button 
+          class="filter-btn" 
+          [class.active]="currentFilter === 'all'"
+          (click)="setFilter('all')"
+          id="filtro-todos">
+          Todos
+        </button>
+        <button 
+          class="filter-btn" 
+          [class.active]="currentFilter === OrderStatus.PENDING"
+          (click)="setFilter(OrderStatus.PENDING)"
+          id="filtro-pendentes">
+          Pendentes
+        </button>
+        <button 
+          class="filter-btn" 
+          [class.active]="currentFilter === OrderStatus.PREPARING"
+          (click)="setFilter(OrderStatus.PREPARING)"
+          id="filtro-em-preparo">
+          Em Preparo
+        </button>
+        <button 
+          class="filter-btn" 
+          [class.active]="currentFilter === OrderStatus.READY"
+          (click)="setFilter(OrderStatus.READY)"
+          id="filtro-prontos">
+          Prontos
+        </button>
+      </div>
     </div>
-    <div *ngIf="pedido.tempoEstimadoConfirmado" class="tempo-confirmado">
-      Tempo confirmado: <strong>{{ pedido.tempoEstimado }} min</strong>
+
+    <div class="orders-grid">
+      <app-order-card
+        *ngFor="let order of filteredOrders"
+        [order]="order"
+        (startPreparation)="onStartPreparation($event)"
+        (finishOrder)="onFinishOrder($event)"
+        (removeOrder)="onRemoveOrder($event)"
+        [attr.id]="'pedido-' + order.id">
+      </app-order-card>
     </div>
   </div>
+</main>
+
+<app-time-modal
+  [isVisible]="timeModal.isVisible"
+  [order]="timeModal.order"
+  (close)="onCloseTimeModal()"
+  (confirm)="onConfirmTimeModal($event)">
+</app-time-modal>
+
+<div class="notification" *ngIf="notification.show" [ngClass]="'notification-' + notification.type">
+  <i class="fas" [ngClass]="getNotificationIcon()"></i>
+  <span>{{ notification.message }}</span>
 </div>
+
