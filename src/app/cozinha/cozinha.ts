@@ -1,137 +1,140 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
-import { Order, OrderStatus, TimeModalData } from '../models/pedidos.model';
-import { OrderService } from '../services/pedidos';
-import { HeaderComponent } from './components/header/header';
+import { Component, OnInit } from '@angular/core';
+import { PedidoService } from '../services/pedidos';
 import { OrderCardComponent } from './components/order-card/order-card';
 import { TimeModalComponent } from './components/time-modal/time-modal';
-
-interface Notification {
-  show: boolean;
-  message: string;
-  type: 'success' | 'info';
-}
+import { CommonModule } from '@angular/common';
+import { interval, switchMap } from 'rxjs';
+import { Order, OrderStatus } from '../models/ordel.model';
 
 @Component({
-  selector: 'app-kitchen-screen',
   standalone: true,
-  imports: [CommonModule, FormsModule, HeaderComponent, OrderCardComponent, TimeModalComponent],
+  imports: [OrderCardComponent, TimeModalComponent, CommonModule],
+  selector: 'app-cozinha',
   templateUrl: './cozinha.html',
   styleUrls: ['./cozinha.scss']
 })
-export class CozinhaComponent implements OnInit, OnDestroy {
-  orders: Order[] = [];
+export class CozinhaComponent implements OnInit {
+  OrderStatus = OrderStatus;
+  private pedidosAntigos: Order[] = [];
+  pedidos: Order[] = [];
   filteredOrders: Order[] = [];
-  currentFilter: OrderStatus | 'all' = 'all';
-  OrderStatus = OrderStatus; // Expor enum para o template
-  
-  timeModal: TimeModalData = {
-    order: null,
-    isVisible: false
-  };
+  currentFilter: string = 'all';
+  pedidosPendentes: Order[] = [];
+  pedidoSelecionado: Order | null = null;
+  modalVisivel: boolean = false;
 
-  notification: Notification = {
+
+
+  notification = {
     show: false,
     message: '',
-    type: 'info'
+    type: 'success' // ou 'error'
   };
 
-  private ordersSubscription?: Subscription;
-  private randomOrderInterval: any;
+  timeModal = {
+    isVisible: false,
+    order: null as Order | null
+  };
 
-  constructor(private orderService: OrderService) {}
+  constructor(private pedidoService: PedidoService) {}
+  
 
   ngOnInit(): void {
-    this.ordersSubscription = this.orderService.getOrders().subscribe(orders => {
-      this.orders = orders;
-      this.applyFilter();
+    this.carregarPedidosPendentes();
+
+    interval(5000)
+      .pipe(
+        switchMap(() => this.pedidoService.listarPedidosPendentes())
+      )
+      .subscribe({
+        next: pedidos => {
+          this.pedidos = pedidos;
+          this.aplicarFiltro();
+        },
+        error: () => this.mostrarNotificacao('Erro ao carregar pedidos', 'error')
+      });
+  }
+
+  carregarPedidosPendentes(): void {
+    this.pedidoService.listarPedidosPendentes().subscribe({
+      next: pedidos => {
+        this.pedidos = pedidos;
+        this.aplicarFiltro();
+      },
+      error: () => this.mostrarNotificacao('Erro ao carregar pedidos', 'error')
     });
-
-    // Simular novos pedidos a cada 2-5 minutos
-    this.randomOrderInterval = setInterval(() => {
-      if (Math.random() > 0.7) { // 30% de chance
-        this.orderService.addRandomOrder();
-      }
-    }, 120000); // 2 minutos
   }
 
-  ngOnDestroy(): void {
-    if (this.ordersSubscription) {
-      this.ordersSubscription.unsubscribe();
-    }
-    if (this.randomOrderInterval) {
-      clearInterval(this.randomOrderInterval);
-    }
+  carregarPedidos(): void {
+    this.pedidoService.listarPedidos().subscribe({
+      next: pedidos => {
+        this.pedidos = pedidos;
+        this.aplicarFiltro();
+      },
+      error: () => this.mostrarNotificacao('Erro ao carregar pedidos', 'error')
+    });
   }
 
-  setFilter(filter: OrderStatus | 'all'): void {
-    this.currentFilter = filter;
-    this.applyFilter();
-  }
-
-  private applyFilter(): void {
+  aplicarFiltro(): void {
     if (this.currentFilter === 'all') {
-      this.filteredOrders = [...this.orders];
+      this.filteredOrders = this.pedidos;
     } else {
-      this.filteredOrders = this.orders.filter(order => order.status === this.currentFilter);
+      this.filteredOrders = this.pedidos.filter(p => p.status === this.currentFilter);
     }
   }
 
-  onStartPreparation(order: Order): void {
-    this.timeModal = {
-      order: order,
-      isVisible: true
-    };
+  setFilter(filtro: string): void {
+    this.currentFilter = filtro;
+    this.aplicarFiltro();
   }
 
-  onFinishOrder(orderId: number): void {
-    const order = this.orders.find(o => o.id === orderId);
-    if (order) {
-      this.orderService.finishOrder(orderId);
-      this.showNotification(`Pedido finalizado: ${order.dishName}`, 'success');
+  onStartPreparation(pedidoId: number) {
+  this.pedidoService.atualizarStatus(pedidoId, OrderStatus.PREPARING).subscribe({
+    next: () => {
+      this.mostrarNotificacao('Pedido marcado como em preparo');
+      this.carregarPedidosPendentes();
+    },
+    error: () => this.mostrarNotificacao('Erro ao atualizar pedido', 'error')
+  });
+}
+
+  onFinishOrder(pedidoId: number): void {
+    const pedido = this.pedidos.find(p => p.id === pedidoId);
+    if (pedido) {
+      this.timeModal.order = pedido;
+      this.timeModal.isVisible = true;
     }
   }
 
-  onRemoveOrder(orderId: number): void {
-    const order = this.orders.find(o => o.id === orderId);
-    if (order) {
-      this.orderService.removeOrder(orderId);
-      this.showNotification(`Pedido removido: ${order.dishName}`, 'info');
-    }
+  onConfirmTimeModal(data: { pedidoId: number, tempoEstimado: number }): void {
+    this.pedidoService.atualizarStatus(data.pedidoId, OrderStatus.READY).subscribe({
+      next: () => {
+        this.mostrarNotificacao('Pedido finalizado');
+        this.timeModal.isVisible = false;
+        this.carregarPedidos();
+      },
+      error: () => this.mostrarNotificacao('Erro ao finalizar pedido', 'error')
+    });
   }
 
   onCloseTimeModal(): void {
-    this.timeModal = {
-      order: null,
-      isVisible: false
-    };
+    this.timeModal.isVisible = false;
+    this.timeModal.order = null;
   }
 
-  onConfirmTimeModal(data: { orderId: number, prepTime: number }): void {
-    const order = this.orders.find(o => o.id === data.orderId);
-    if (order) {
-      this.orderService.startPreparation(data.orderId, data.prepTime);
-      this.showNotification(`Preparo iniciado: ${order.dishName} (${data.prepTime} min)`, 'success');
-    }
-    this.onCloseTimeModal();
+  onRemoveOrder(pedidoId: number): void {
+    this.pedidos = this.pedidos.filter(p => p.id !== pedidoId);
+    this.aplicarFiltro();
+  }
+
+  mostrarNotificacao(msg: string, tipo: 'success' | 'error' = 'success') {
+    this.notification.message = msg;
+    this.notification.type = tipo;
+    this.notification.show = true;
+    setTimeout(() => this.notification.show = false, 3000);
   }
 
   getNotificationIcon(): string {
-    return this.notification.type === 'success' ? 'fa-check-circle' : 'fa-info-circle';
-  }
-
-  private showNotification(message: string, type: 'success' | 'info'): void {
-    this.notification = {
-      show: true,
-      message: message,
-      type: type
-    };
-
-    setTimeout(() => {
-      this.notification.show = false;
-    }, 3000);
+    return this.notification.type === 'success' ? 'fa-check-circle' : 'fa-times-circle';
   }
 }
-

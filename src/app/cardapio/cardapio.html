@@ -21,8 +21,8 @@
     <button 
       *ngFor="let categoria of categorias"
       class="categoria-btn"
-      [class.ativa]="categoriaAtiva === categoria.id"
-      (click)="selecionarCategoria(categoria.id)"
+      [class.ativa]="categoriaAtiva?.id === categoria.id"
+      (click)="selecionarCategoria(categoria)"
       [attr.id]="'categoria-' + categoria.id"
     >
       <span class="icone">{{ categoria.icone }}</span>
@@ -32,53 +32,50 @@
 
   <!-- Lista de Itens -->
   <main class="cardapio-content">
-    <div class="categoria-section" *ngFor="let categoria of categorias">
-      <div *ngIf="categoriaAtiva === categoria.id">
+    <ng-container *ngFor="let categoria of categorias">
+      <section class="categoria-section" *ngIf="categoriaAtiva?.id === categoria.id">
         <h2 class="categoria-titulo">
           {{ categoria.icone }} {{ categoria.nome }}
         </h2>
-        
         <div class="itens-grid">
           <div 
             class="item-card" 
-            *ngFor="let item of getItensPorCategoria(categoria.id)"
-            id="item-card"
+            *ngFor="let item of getItensPorCategoria(categoria)"
+            [attr.id]="'item-card-' + item.id"
           >
             <div class="item-info">
               <h3 class="item-nome">{{ item.nome }}</h3>
               <p class="item-descricao">{{ item.descricao }}</p>
               <span class="item-preco">{{ formatarPreco(item.preco) }}</span>
             </div>
-            
             <div class="item-actions">
               <button 
                 class="btn-observacao" 
                 (click)="abrirModalObservacao(item)"
                 title="Adicionar observação"
-                id="adicionar-observacao"
+                [attr.id]="'adicionar-observacao-' + item.id"
               >
                 ✏️
               </button>
               <button 
                 class="btn-adicionar" 
                 (click)="adicionarItem(item)"
-                id="adicionar-item"
+                [attr.id]="'adicionar-item-' + item.id"
               >
                 + Adicionar
               </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </ng-container>
   </main>
 
   <!-- Componente do Carrinho -->
   <app-carrinho 
-    *ngIf="carrinhoAberto"
-    [comanda]="comanda"
-    (fechar)="toggleCarrinho()"
-  ></app-carrinho>
+  *ngIf="carrinhoAberto"
+  (fechar)="toggleCarrinho()"
+></app-carrinho>
 
   <!-- Modal de Observação -->
   <app-observacao-modal

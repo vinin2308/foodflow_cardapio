@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.utils import timezone
 
 
@@ -14,6 +14,7 @@ class PedidoStatus(models.TextChoices):
     ENTREGUE = 'entregue', 'Entregue'
     PAGO = 'pago', 'Pago'
     CANCELADO = 'cancelado', 'Cancelado'
+    
 
 
 class PagamentoStatus(models.TextChoices):
@@ -33,6 +34,7 @@ class MetodoPagamento(models.TextChoices):
 # USUÁRIO
 # ----------------------------
 
+
 class Usuario(AbstractUser):
     ROLE_CHOICES = (
         ('cliente', 'Cliente'),
@@ -40,11 +42,27 @@ class Usuario(AbstractUser):
         ('garcom', 'Garçom'),
         ('cozinheiro', 'Cozinheiro'),
     )
+    
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
-
+    groups = models.ManyToManyField(
+        Group,
+        related_name='foodflow_usuarios',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        related_query_name='usuario',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='foodflow_usuarios_permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_query_name='usuario',
+        verbose_name='user permissions',
+)
 # ----------------------------
 # MESA
 # ----------------------------
@@ -64,6 +82,7 @@ class Mesa(models.Model):
 
 class Categoria(models.Model):
     nome = models.CharField(max_length=100, unique=True)
+    icone = models.CharField(max_length=10, blank=True)
     criado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -108,6 +127,7 @@ class PratoIngrediente(models.Model):
 
 class Pedido(models.Model):
     mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT)
+    nome_cliente = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=20, choices=PedidoStatus.choices, default=PedidoStatus.PENDENTE)
     tempo_estimado = models.IntegerField(null=True, blank=True)
     criado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)

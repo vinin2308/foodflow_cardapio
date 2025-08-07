@@ -1,34 +1,32 @@
 <div class="order-card" [ngClass]="getCardClass()">
   <div class="order-header">
-    <span class="order-number">{{ order.orderNumber }}</span>
+    <span class="order-number">Pedido #{{ order.id }}</span>
     <span class="order-time">{{ getOrderTime() }}</span>
   </div>
   
-  <div class="dish-name">{{ order.dishName }}</div>
-  <div class="dish-description">{{ order.description }}</div>
-  
+  <div class="dish-name">{{ order.itens }}</div>  
   <div class="order-status">
     <span class="status-badge" [ngClass]="getStatusClass()">
       {{ getStatusText() }}
     </span>
   </div>
   
-  <div class="prep-time" *ngIf="order.status === 'preparing'">
+  <div class="prep-time" *ngIf="order.status === OrderStatus.PREPARING">
     <i class="fas fa-clock"></i>
     <span [ngClass]="getCountdownClass()">
       {{ getFormattedRemainingTime() }}
-      {{ isOvertime() ? ' (Atrasado)' : '' }}
+      <span *ngIf="isOvertime()"> (Atrasado)</span>
     </span>
   </div>
   
-  <div class="prep-time" *ngIf="order.status === 'ready'">
+  <div class="prep-time" *ngIf="order.status === OrderStatus.READY">
     <i class="fas fa-check-circle"></i>
     <span>Pronto para servir</span>
   </div>
   
   <div class="order-actions">
     <button 
-      *ngIf="order.status === 'pending'" 
+      *ngIf="order.status === OrderStatus.PENDING" 
       class="btn btn-start"
       (click)="onStartPreparation()"
       id="btn-iniciar-preparo">
@@ -36,7 +34,7 @@
     </button>
     
     <button 
-      *ngIf="order.status === 'preparing'" 
+      *ngIf="order.status === OrderStatus.PREPARING" 
       class="btn btn-finish"
       (click)="onFinishOrder()"
       id="btn-finalizar-preparo">
@@ -44,7 +42,7 @@
     </button>
     
     <button 
-      *ngIf="order.status === 'ready'" 
+      *ngIf="order.status === OrderStatus.READY" 
       class="btn btn-cancel"
       (click)="onRemoveOrder()"
       id="btn-remover-pedido">
@@ -52,4 +50,3 @@
     </button>
   </div>
 </div>
-

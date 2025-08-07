@@ -28,7 +28,6 @@ export class HomeComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       if (params['mesa']) {
         this.mesa = params['mesa'];
-        // Ao receber a mesa do QR Code, verifica imediatamente o status de acesso
         this.onMesaChange();
       }
     });
@@ -39,12 +38,10 @@ export class HomeComponent implements OnInit {
   }
 
   verificarPrimeiroAcesso() {
-    // A verificação só faz sentido se houver um número de mesa preenchido
     if (this.mesa && this.mesa.trim() !== '') {
       const comandaExistente = localStorage.getItem(`comanda-${this.mesa}`);
       this.isPrimeiroAcesso = !comandaExistente;
     } else {
-      // Se a mesa estiver vazia, o padrão é ser o primeiro acesso.
       this.isPrimeiroAcesso = true;
     }
   }
@@ -55,13 +52,16 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    // Salvar mesa atual no localStorage
     localStorage.setItem('mesa-atual', this.mesa);
-    
-    // Iniciar nova comanda
-    this.carrinhoService.iniciarComanda(this.mesa, this.nome);
+    localStorage.setItem('nome', this.nome);
 
-    // Salvar mesa como ativa
+    const mesaNumero = Number(this.mesa);
+    if (isNaN(mesaNumero)) {
+      alert('Número da mesa inválido.');
+      return;
+    }
+
+    this.carrinhoService.iniciarComanda(mesaNumero);
     this.salvarMesaAtiva();
 
     console.log('Iniciando pedido para mesa:', this.mesa);
@@ -70,13 +70,12 @@ export class HomeComponent implements OnInit {
       console.log('Número de pessoas:', this.numeroPessoas);
     }
 
-    // Navegar para o cardápio
-    this.router.navigate(['/cardapio'], { 
-      queryParams: { 
-        mesa: this.mesa, 
+    this.router.navigate(['/cardapio'], {
+      queryParams: {
+        mesa: this.mesa,
         nome: this.nome,
         pessoas: this.isPrimeiroAcesso ? this.numeroPessoas : undefined
-      } 
+      }
     });
   }
 
@@ -86,22 +85,25 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    // Salvar mesa atual no localStorage
+    const mesaNumero = Number(this.mesa);
+    if (isNaN(mesaNumero)) {
+      alert('Número da mesa inválido.');
+      return;
+    }
+
     localStorage.setItem('mesa-atual', this.mesa);
 
-    // Tentar conectar à comanda existente
-    const conectado = this.carrinhoService.conectarComanda(this.mesa);
-    
+    const conectado = this.carrinhoService.conectarComanda(mesaNumero);
+
     if (conectado) {
       console.log('Entrando em pedido existente da mesa:', this.mesa);
       console.log('Nome:', this.nome);
-      
-      // Navegar para o cardápio
-      this.router.navigate(['/cardapio'], { 
-        queryParams: { 
-          mesa: this.mesa, 
-          nome: this.nome 
-        } 
+
+      this.router.navigate(['/cardapio'], {
+        queryParams: {
+          mesa: this.mesa,
+          nome: this.nome
+        }
       });
     } else {
       alert('Não há pedido ativo para esta mesa. Inicie um novo pedido.');
@@ -111,11 +113,11 @@ export class HomeComponent implements OnInit {
   private salvarMesaAtiva() {
     const mesasExistentes = localStorage.getItem('mesas_ativas');
     let mesas: string[] = [];
-    
+
     if (mesasExistentes) {
       mesas = JSON.parse(mesasExistentes);
     }
-    
+
     if (!mesas.includes(this.mesa)) {
       mesas.push(this.mesa);
       localStorage.setItem('mesas_ativas', JSON.stringify(mesas));
