@@ -1,57 +1,56 @@
 import { Component, OnInit } from '@angular/core';
-import { PedidoService } from '../services/pedidos';
+import { PedidosService } from '../services/pedidos';
 import { OrderCardComponent } from './components/order-card/order-card';
 import { TimeModalComponent } from './components/time-modal/time-modal';
 import { CommonModule } from '@angular/common';
 import { interval, switchMap } from 'rxjs';
 import { Order, OrderStatus } from '../models/ordel.model';
+import { HeaderComponent } from './components/header/header';
+import { ItemCardapio } from '../models/item-cardapio.model';
+import { PratoService } from '../services/prato';
 
 @Component({
   standalone: true,
-  imports: [OrderCardComponent, TimeModalComponent, CommonModule],
+  imports: [OrderCardComponent, TimeModalComponent, CommonModule, HeaderComponent],
   selector: 'app-cozinha',
   templateUrl: './cozinha.html',
   styleUrls: ['./cozinha.scss']
 })
 export class CozinhaComponent implements OnInit {
   OrderStatus = OrderStatus;
-  private pedidosAntigos: Order[] = [];
   pedidos: Order[] = [];
+  pratosCardapio: ItemCardapio[] = [];
   filteredOrders: Order[] = [];
   currentFilter: string = 'all';
-  pedidosPendentes: Order[] = [];
   pedidoSelecionado: Order | null = null;
-  modalVisivel: boolean = false;
-
-
-
-  notification = {
-    show: false,
-    message: '',
-    type: 'success' // ou 'error'
-  };
 
   timeModal = {
     isVisible: false,
     order: null as Order | null
   };
 
-  constructor(private pedidoService: PedidoService) {}
-  
+  notification = {
+    show: false,
+    message: '',
+    type: 'success'
+  };
+
+  constructor(
+    private pedidoService: PedidosService,
+    private pratoService: PratoService
+  ) {}
 
   ngOnInit(): void {
     this.carregarPedidosPendentes();
 
     interval(5000)
-      .pipe(
-        switchMap(() => this.pedidoService.listarPedidosPendentes())
-      )
+      .pipe(switchMap(() => this.pedidoService.listarPedidosPendentes()))
       .subscribe({
         next: pedidos => {
           this.pedidos = pedidos;
           this.aplicarFiltro();
         },
-        error: () => this.mostrarNotificacao('Erro ao carregar pedidos', 'error')
+        error: () => this.mostrarNotificacao('Erro ao atualizar pedidos', 'error')
       });
   }
 
@@ -76,11 +75,9 @@ export class CozinhaComponent implements OnInit {
   }
 
   aplicarFiltro(): void {
-    if (this.currentFilter === 'all') {
-      this.filteredOrders = this.pedidos;
-    } else {
-      this.filteredOrders = this.pedidos.filter(p => p.status === this.currentFilter);
-    }
+    this.filteredOrders = this.currentFilter === 'all'
+      ? this.pedidos
+      : this.pedidos.filter(p => p.status === this.currentFilter);
   }
 
   setFilter(filtro: string): void {
@@ -88,15 +85,13 @@ export class CozinhaComponent implements OnInit {
     this.aplicarFiltro();
   }
 
-  onStartPreparation(pedidoId: number) {
-  this.pedidoService.atualizarStatus(pedidoId, OrderStatus.PREPARING).subscribe({
-    next: () => {
-      this.mostrarNotificacao('Pedido marcado como em preparo');
-      this.carregarPedidosPendentes();
-    },
-    error: () => this.mostrarNotificacao('Erro ao atualizar pedido', 'error')
-  });
-}
+  onStartPreparation(pedidoId: number): void {
+    const pedido = this.pedidos.find(p => p.id === pedidoId);
+    if (pedido) {
+      this.timeModal.order = pedido;
+      this.timeModal.isVisible = true;
+    }
+  }
 
   onFinishOrder(pedidoId: number): void {
     const pedido = this.pedidos.find(p => p.id === pedidoId);
@@ -107,13 +102,13 @@ export class CozinhaComponent implements OnInit {
   }
 
   onConfirmTimeModal(data: { pedidoId: number, tempoEstimado: number }): void {
-    this.pedidoService.atualizarStatus(data.pedidoId, OrderStatus.READY).subscribe({
+    this.pedidoService.atualizarTempoEStatus(data.pedidoId, data.tempoEstimado, OrderStatus.PREPARING).subscribe({
       next: () => {
-        this.mostrarNotificacao('Pedido finalizado');
+        this.mostrarNotificacao('Pedido marcado como em preparo');
         this.timeModal.isVisible = false;
         this.carregarPedidos();
       },
-      error: () => this.mostrarNotificacao('Erro ao finalizar pedido', 'error')
+      error: () => this.mostrarNotificacao('Erro ao iniciar preparo', 'error')
     });
   }
 

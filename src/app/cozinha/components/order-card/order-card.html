@@ -3,14 +3,25 @@
     <span class="order-number">Pedido #{{ order.id }}</span>
     <span class="order-time">{{ getOrderTime() }}</span>
   </div>
-  
-  <div class="dish-name">{{ order.itens }}</div>  
+
+  <div class="order-info">
+    <p><strong>Mesa:</strong> {{ order.mesa }}</p>
+    <p><strong>Cliente:</strong> {{ order.nome_cliente }}</p>
+  </div>
+
+  <ul class="dish-list">
+    <li *ngFor="let item of order.itens">
+      {{ item.quantidade }}x {{ item.prato_nome}}
+      <span *ngIf="item.observacao">({{ item.observacao }})</span>
+    </li>
+  </ul>
+
   <div class="order-status">
     <span class="status-badge" [ngClass]="getStatusClass()">
       {{ getStatusText() }}
     </span>
   </div>
-  
+
   <div class="prep-time" *ngIf="order.status === OrderStatus.PREPARING">
     <i class="fas fa-clock"></i>
     <span [ngClass]="getCountdownClass()">
@@ -18,34 +29,31 @@
       <span *ngIf="isOvertime()"> (Atrasado)</span>
     </span>
   </div>
-  
+
   <div class="prep-time" *ngIf="order.status === OrderStatus.READY">
     <i class="fas fa-check-circle"></i>
     <span>Pronto para servir</span>
   </div>
-  
+
   <div class="order-actions">
     <button 
       *ngIf="order.status === OrderStatus.PENDING" 
       class="btn btn-start"
-      (click)="onStartPreparation()"
-      id="btn-iniciar-preparo">
+      (click)="onStartPreparation()">
       <i class="fas fa-play"></i> Iniciar Preparo
     </button>
-    
+
     <button 
       *ngIf="order.status === OrderStatus.PREPARING" 
       class="btn btn-finish"
-      (click)="onFinishOrder()"
-      id="btn-finalizar-preparo">
+      (click)="onFinishOrder()">
       <i class="fas fa-check"></i> Finalizar
     </button>
-    
+
     <button 
       *ngIf="order.status === OrderStatus.READY" 
       class="btn btn-cancel"
-      (click)="onRemoveOrder()"
-      id="btn-remover-pedido">
+      (click)="onRemoveOrder()">
       <i class="fas fa-times"></i> Remover
     </button>
   </div>

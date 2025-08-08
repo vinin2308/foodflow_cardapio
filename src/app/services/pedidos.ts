@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Order } from '../models/ordel.model';
+import { Order, OrderStatus } from '../models/ordel.model';
 
 @Injectable({
   providedIn: 'root'
 })
-export class PedidoService {
+export class PedidosService {
   private apiUrl = 'http://localhost:8000/api/pedidos/';
 
   constructor(private http: HttpClient) {}
@@ -18,8 +18,11 @@ export class PedidoService {
     return this.http.get<Order[]>(this.apiUrl + 'cozinha/');  // chama /api/pedidos/cozinha/
 }
 
-  atualizarStatus(pedidoId: number, status: string): Observable<any> {
-    return this.http.patch(`${this.apiUrl}${pedidoId}/`, { status });
-  }
+  atualizarTempoEStatus(pedidoId: number, tempo: number, status: OrderStatus) {
+  return this.http.put(`/api/pedidos/${pedidoId}`, {
+    tempoEstimado: tempo,
+    status: status
+  });
+}
   
 }

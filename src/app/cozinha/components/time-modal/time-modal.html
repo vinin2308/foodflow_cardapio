@@ -7,16 +7,22 @@
     
     <div class="modal-body" *ngIf="order">
       <div class="dish-info">
-    <ul>
-    <li *ngFor="let item of order.itens">
-       {{ item.prato_nome }} - {{ item.quantidade }}x
-    </li>
-</ul>       
- <p>{{ order.id }}</p>
+        <p><strong>Pedido #{{ order.id }}</strong></p>
+        <p><strong>Mesa:</strong> {{ order.mesa }}</p>
+        <p><strong>Cliente:</strong> {{ order.nome_cliente }}</p>
+
+        <ul>
+          <li *ngFor="let item of order.itens">
+            {{ item.quantidade }}x {{ item.prato_nome }}
+            <span *ngIf="item.observacao">({{ item.observacao }})</span>
+          </li>
+        </ul>
+
+        <p><strong>Status:</strong> {{ order.status }}</p>
       </div>
       
       <div class="time-input-group">
-        <label for="prepTime">Tempo estimado (minutos):</label>
+        <label for="prepTime"><strong>Tempo estimado (minutos):</strong></label>
         <div class="time-controls">
           <button class="time-btn" (click)="adjustTime(-5)" id="btn-menos-5">-5</button>
           <button class="time-btn" (click)="adjustTime(-1)" id="btn-menos-1">-1</button>
@@ -29,6 +35,7 @@
           <button class="time-btn" (click)="adjustTime(1)" id="btn-mais-1">+1</button>
           <button class="time-btn" (click)="adjustTime(5)" id="btn-mais-5">+5</button>
         </div>
+        <p><em>Tempo atual: {{ prepTime }} min</em></p>
       </div>
       
       <div class="modal-actions">
@@ -38,4 +45,3 @@
     </div>
   </div>
 </div>
-

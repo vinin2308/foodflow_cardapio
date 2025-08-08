@@ -10,8 +10,10 @@ from .serializers import (
     MesaSerializer,
     CategoriaSerializer,
     PratoSerializer,
-    PedidoSerializer,
+    PedidoReadSerializer,
+    PedidoWriteSerializer,
     PedidoItemSerializer,
+    PedidoItemWriteSerializer,
     PagamentoSerializer,
 )
 
@@ -28,72 +30,48 @@ class CategoriaViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriaSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    
 class PratoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Prato.objects.filter(ativo=True)
     serializer_class = PratoSerializer
-    permission_classes = [AllowAny]  # <-- Permite acesso público 
+    permission_classes = [AllowAny]
+
 @method_decorator(csrf_exempt, name='dispatch')
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
-    serializer_class = PedidoSerializer
-    
-    def get_permissions(self):
-        if self.action == 'cozinha':
-            return [AllowAny()]
-        return super().get_permissions() 
+    permission_classes = [AllowAny]
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update']:
+            return PedidoWriteSerializer
+        return PedidoReadSerializer
 
     def get_serializer_context(self):
-        return { **super().get_serializer_context(), "request": self.request }
+        return {**super().get_serializer_context(), "request": self.request}
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return Pedido.objects.filter(criado_por=user)
+        return Pedido.objects.filter(criado_por__isnull=True)
 
     @action(detail=False, methods=['get', 'post'])
     def cozinha(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pedido = serializer.save()  # ou algum valor fixo
-        return Response(serializer.data, status=201)
+        if request.method == 'GET':
+            pedidos = Pedido.objects.filter(status=PedidoStatus.PENDENTE)
+            serializer = self.get_serializer(pedidos, many=True)
+            return Response(serializer.data)
 
-        # POST: cria um pedido “pela cozinha”
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pedido = serializer.save(criado_por=request.user)
-        return Response(
-            self.get_serializer(pedido).data,
-            status=status.HTTP_201_CREATED
-        )
-
-def create(self, validated_data):
-    itens_data = validated_data.pop('itens', [])
-    request = self.context.get('request')
-    user = request.user if request else None
-
-    validated_data['criado_por'] = user
-
-    pedido = Pedido.objects.create(**validated_data)
-
-    for item_data in itens_data:
-        prato = item_data.get('prato')
-        quantidade = item_data.get('quantidade')
-        observacao = item_data.get('observacao', '')
-
-        # Buscar o preço do prato para usar no pedido item
-        preco_unitario = prato.preco if prato else 0
-
-        PedidoItem.objects.create(
-            pedido=pedido,
-            prato=prato,
-            quantidade=quantidade,
-            observacao=observacao,
-            usuario=user,
-            preco_unitario=preco_unitario,
-        )
-
-    return pedido
+        elif request.method == 'POST':
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            pedido = serializer.save()
+            read_serializer = PedidoReadSerializer(pedido)
+            return Response(read_serializer.data, status=status.HTTP_201_CREATED)
 
 class PedidoItemViewSet(viewsets.ModelViewSet):
     queryset = PedidoItem.objects.all()
     serializer_class = PedidoItemSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
 
 class PagamentoViewSet(viewsets.ModelViewSet):
     queryset = Pagamento.objects.all()

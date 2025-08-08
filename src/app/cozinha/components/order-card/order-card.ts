@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Order, OrderStatus } from '../../../models/ordel.model';
+import { ItemCardapio } from '../../../models/item-cardapio.model';
+
 @Component({
   selector: 'app-order-card',
   standalone: true,
@@ -10,6 +12,7 @@ import { Order, OrderStatus } from '../../../models/ordel.model';
 })
 export class OrderCardComponent implements OnInit, OnDestroy {
   @Input() order!: Order;
+  @Input() pratosCardapio: ItemCardapio[] = [];
   @Output() startPreparation = new EventEmitter<number>();
   @Output() finishOrder = new EventEmitter<number>();
   @Output() removeOrder = new EventEmitter<number>();
@@ -19,9 +22,8 @@ export class OrderCardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (this.order.status === OrderStatus.PREPARING) {
-      // Atualiza a cada segundo para contar o tempo restante do preparo
       this.updateInterval = setInterval(() => {
-        // Pode disparar change detection ou recalcular o tempo restante
+        // Atualiza a cada segundo para recalcular tempo restante
       }, 1000);
     }
   }
@@ -54,21 +56,25 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   getOrderTime(): string {
-    return new Date(this.order.tempoEstimado).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return new Date(this.order.data).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   }
 
-  /** 
-   * Calcula o tempo restante para preparo baseado no tempo estimado (minutos)
-   * e a hora de criação do pedido.
-   */
-  getFormattedRemainingTime(): string {
-    if (!this.order.tempoEstimado) return '';
+  getNomePrato(prato_nome: number): string {
+  const prato = this.pratosCardapio.find(p => p.id === prato_nome);
+  return prato ? prato.nome : `Prato #${prato_nome}`;
+}
 
-    const criadoEm = new Date(this.order.tempoEstimado);
+  getFormattedRemainingTime(): string {
+    if (!this.order.tempoEstimado || !this.order.data) return '';
+
+    const criadoEm = new Date(this.order.data).getTime();
     const prazoMs = this.order.tempoEstimado * 60 * 1000;
-    const expiracao = criadoEm.getTime() + prazoMs;
+    const expiracao = criadoEm + prazoMs;
     const agora = Date.now();
-    let diff = Math.max(0, expiracao - agora);
+    const diff = Math.max(0, expiracao - agora);
 
     const minutos = Math.floor(diff / 60000);
     const segundos = Math.floor((diff % 60000) / 1000);
@@ -77,11 +83,11 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   isOvertime(): boolean {
-    if (!this.order.tempoEstimado) return false;
+    if (!this.order.tempoEstimado || !this.order.data) return false;
 
-    const criadoEm = new Date(this.order.tempoEstimado);
+    const criadoEm = new Date(this.order.data).getTime();
     const prazoMs = this.order.tempoEstimado * 60 * 1000;
-    return (Date.now() - criadoEm.getTime()) > prazoMs;
+    return Date.now() > criadoEm + prazoMs;
   }
 
   getCountdownClass(): string {

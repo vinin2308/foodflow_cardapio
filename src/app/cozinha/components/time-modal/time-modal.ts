@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Order } from '../../../models/ordel.model';
-import { PedidoService } from '../../../services/pedidos';
+import { PedidosService } from '../../../services/pedidos';
 
 @Component({
   selector: 'app-time-modal',

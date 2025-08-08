@@ -116,7 +116,7 @@ export class CarrinhoService {
   }
 
   confirmarPedidoNoCozinha(pedido: PedidoPayload): Observable<Order> {
-    return this.http.post<Order>(`${this.apiUrl}cozinha/`, pedido);
+    return this.http.post<Order>(this.apiUrl, pedido);
   }
 
   toggleCarrinho(): void {

@@ -130,7 +130,7 @@ class Pedido(models.Model):
     nome_cliente = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=20, choices=PedidoStatus.choices, default=PedidoStatus.PENDENTE)
     tempo_estimado = models.IntegerField(null=True, blank=True)
-    criado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)
+    criado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT, null=True, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -145,9 +145,9 @@ class PedidoUsuario(models.Model):
 
 
 class PedidoItem(models.Model):
-    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='itens')    
     prato = models.ForeignKey(Prato, on_delete=models.PROTECT)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
     quantidade = models.IntegerField()
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     observacao = models.TextField(blank=True)

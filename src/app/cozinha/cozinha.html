@@ -1,7 +1,12 @@
+<app-header></app-header>
 <main class="main-content">
+  <!-- ✅ Cabeçalho com relógio -->
+
   <div class="orders-container">
     <div class="orders-header">
       <h2>Pedidos em Andamento</h2>
+
+      <!-- ✅ Botões de filtro -->
       <div class="filter-buttons">
         <button 
           class="filter-btn" 
@@ -10,6 +15,7 @@
           id="filtro-todos">
           Todos
         </button>
+
         <button 
           class="filter-btn" 
           [class.active]="currentFilter === OrderStatus.PENDING"
@@ -17,6 +23,7 @@
           id="filtro-pendentes">
           Pendentes
         </button>
+
         <button 
           class="filter-btn" 
           [class.active]="currentFilter === OrderStatus.PREPARING"
@@ -24,6 +31,7 @@
           id="filtro-em-preparo">
           Em Preparo
         </button>
+
         <button 
           class="filter-btn" 
           [class.active]="currentFilter === OrderStatus.READY"
@@ -34,8 +42,9 @@
       </div>
     </div>
 
+    <!-- ✅ Lista de pedidos -->
     <div class="orders-grid">
-     <app-order-card
+      <app-order-card
         *ngFor="let order of filteredOrders"
         [order]="order"
         (startPreparation)="onStartPreparation($event)"
@@ -47,6 +56,7 @@
   </div>
 </main>
 
+<!-- ✅ Modal de tempo -->
 <app-time-modal
   [isVisible]="timeModal.isVisible"
   [order]="timeModal.order"
@@ -54,6 +64,7 @@
   (confirm)="onConfirmTimeModal($event)">
 </app-time-modal>
 
+<!-- ✅ Notificação -->
 <div class="notification" *ngIf="notification.show" [ngClass]="'notification-' + notification.type">
   <i class="fas" [ngClass]="getNotificationIcon()"></i>
   <span>{{ notification.message }}</span>
