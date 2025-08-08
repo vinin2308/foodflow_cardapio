@@ -1,0 +1,643 @@
+.home-container {
+  min-height: 100vh;
+  background: var(--foodflow-light-gray);
+}
+
+.main-content {
+  margin-left: 280px;
+  padding-top: 70px; // Header height
+  transition: margin-left 0.3s ease;
+  
+  &.sidebar-collapsed {
+    margin-left: 70px;
+  }
+}
+
+.content-wrapper {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+// Page Header
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  
+  .header-content {
+    .page-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--foodflow-dark-gray);
+      margin: 0 0 8px 0;
+      background: var(--foodflow-gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      word-break: keep-all;
+    }
+    
+    .page-subtitle {
+      font-size: 1.1rem;
+      color: var(--foodflow-gray);
+      margin: 0;
+    }
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    
+    button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      
+      .material-icons {
+        font-size: 18px;
+      }
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--foodflow-shadow-md);
+      }
+    }
+  }
+}
+
+// Metrics Grid
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.metric-card {
+  background: var(--foodflow-white);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--foodflow-shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--foodflow-shadow-lg);
+    border-color: rgba(114, 47, 55, 0.1);
+  }
+  
+  .metric-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    .material-icons {
+      font-size: 28px;
+      color: var(--foodflow-white);
+    }
+    
+    &.orders {
+      background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    }
+    
+    &.revenue {
+      background: var(--foodflow-gradient-primary);
+    }
+    
+    &.dishes {
+      background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    }
+    
+    &.average {
+      background: var(--foodflow-gradient-gold);
+      
+      .material-icons {
+        color: var(--foodflow-dark-gray);
+      }
+    }
+  }
+  
+  .metric-content {
+    flex: 1;
+    
+    .metric-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--foodflow-dark-gray);
+      margin: 0 0 4px 0;
+      line-height: 1.2;
+    }
+    
+    .metric-label {
+      font-size: 0.95rem;
+      color: var(--foodflow-gray);
+      margin: 0 0 8px 0;
+      font-weight: 500;
+    }
+    
+    .metric-change {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      
+      .material-icons {
+        font-size: 16px;
+      }
+      
+      &.positive {
+        color: #28a745;
+      }
+      
+      &.negative {
+        color: #dc3545;
+      }
+    }
+  }
+}
+
+// Dashboard Grid
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.dashboard-card {
+  background: var(--foodflow-white);
+  border-radius: 16px;
+  box-shadow: var(--foodflow-shadow-sm);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  
+  &:hover {
+    box-shadow: var(--foodflow-shadow-md);
+  }
+  }
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0 24px;
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--foodflow-dark-gray);
+      margin: 0;
+    }
+    
+    .view-all-link {
+      color: var(--foodflow-wine);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  .card-content {
+    padding: 24px;
+  }
+
+// Top Dishes
+.top-dishes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  .dish-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    background: var(--foodflow-light-gray);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(114, 47, 55, 0.05);
+      transform: translateX(4px);
+    }
+    
+    .dish-rank {
+      width: 28px;
+      height: 28px;
+      background: var(--foodflow-wine);
+      color: var(--foodflow-white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    
+    .dish-image {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    
+    .dish-info {
+      flex: 1;
+      min-width: 0;
+      
+      .dish-name {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--foodflow-dark-gray);
+        margin: 0 0 2px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .dish-category {
+        font-size: 0.8rem;
+        color: var(--foodflow-gray);
+        margin: 0 0 6px 0;
+      }
+      
+      .dish-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        
+        .orders-count {
+          font-size: 0.8rem;
+          color: var(--foodflow-gray);
+        }
+        
+        .revenue {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: var(--foodflow-wine);
+        }
+      }
+    }
+  }
+}
+
+
+// Peak Hours Chart
+.peak-hours-chart {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  height: 200px;
+  padding: 20px 0;
+}
+
+.hour-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  
+  .bar-fill {
+    width: 100%;
+    background: var(--foodflow-gradient-primary);
+    border-radius: 4px 4px 0 0;
+    transition: all 0.3s ease;
+    min-height: 4px;
+  }
+  
+  .hour-label {
+    font-size: 0.75rem;
+    color: var(--foodflow-gray);
+    font-weight: 500;
+  }
+  
+  &:hover .bar-fill {
+    background: var(--foodflow-gradient-gold);
+  }
+}
+
+// Stock Alerts
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border-left: 4px solid;
+  
+  &.low_stock {
+    background: rgba(255, 193, 7, 0.1);
+    border-left-color: #ffc107;
+    
+    .alert-icon {
+      color: #ffc107;
+    }
+  }
+  
+  &.expiring_soon {
+    background: rgba(255, 152, 0, 0.1);
+    border-left-color: #ff9800;
+    
+    .alert-icon {
+      color: #ff9800;
+    }
+  }
+  
+  &.expired {
+    background: rgba(220, 53, 69, 0.1);
+    border-left-color: #dc3545;
+    
+    .alert-icon {
+      color: #dc3545;
+    }
+  }
+  
+  .alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    
+    .material-icons {
+      font-size: 18px;
+    }
+  }
+  
+  .alert-content {
+    flex: 1;
+    
+    .alert-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--foodflow-dark-gray);
+      margin: 0 0 4px 0;
+    }
+    
+    .alert-message {
+      font-size: 0.85rem;
+      color: var(--foodflow-gray);
+      margin: 0;
+    }
+  }
+  
+  .alert-action {
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--foodflow-wine);
+      background: var(--foodflow-white);
+      color: var(--foodflow-wine);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: var(--foodflow-wine);
+        color: var(--foodflow-white);
+      }
+    }
+  }
+}
+
+.no-alerts {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--foodflow-gray);
+  
+  .material-icons {
+    font-size: 48px;
+    color: #28a745;
+    margin-bottom: 12px;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+// Category Sales
+.category-sales {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.category-item {
+  .category-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    
+    .category-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--foodflow-dark-gray);
+      margin: 0;
+    }
+    
+    .category-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 0.8rem;
+      
+      .orders {
+        color: var(--foodflow-gray);
+      }
+      
+      .revenue {
+        color: var(--foodflow-wine);
+        font-weight: 600;
+      }
+    }
+  }
+  
+  .category-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    .progress-bar {
+      flex: 1;
+      height: 6px;
+      background: #E9ECEF;
+      border-radius: 3px;
+      overflow: hidden;
+      
+      .progress-fill {
+        height: 100%;
+        background: var(--foodflow-gradient-primary);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+    }
+    
+    .percentage {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--foodflow-wine);
+      min-width: 40px;
+      text-align: right;
+    }
+  }
+}
+
+// Loading States
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--foodflow-gray);
+  
+  .material-icons {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+    animation: pulse 2s infinite;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+// Responsive Design
+@media (max-width: 1200px) {
+  .dashboard-card {
+    &:nth-child(1) { // Top dishes
+      grid-column: span 6;
+    }
+    
+    &:nth-child(2) { // Peak hours
+      grid-column: span 6;
+    }
+    
+    &.alerts-card {
+      grid-column: span 12;
+    }
+    
+    &:nth-child(4) { // Category sales
+      grid-column: span 12;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    
+    &.sidebar-collapsed {
+      margin-left: 0;
+    }
+  }
+  
+  .content-wrapper {
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    
+    .header-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .dashboard-card {
+    grid-column: span 1 !important;
+  }
+  
+  .peak-hours-chart {
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metric-card {
+    flex-direction: column;
+    text-align: center;
+    
+    .metric-icon {
+      width: 56px;
+      height: 56px;
+      
+      .material-icons {
+        font-size: 24px;
+      }
+    }
+    
+    .metric-content .metric-value {
+      font-size: 1.8rem;
+    }
+  }
+  
+  .dish-item {
+    flex-direction: column;
+    text-align: center;
+    
+    .dish-info {
+      text-align: center;
+      
+      .dish-stats {
+        justify-content: center;
+      }
+    }
+  }
+}
+

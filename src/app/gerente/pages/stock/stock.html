@@ -1,0 +1,532 @@
+<div class="stock-container">
+  <!-- Header -->
+  <app-header (sidebarToggle)="toggleSidebar()"></app-header>
+  
+  <!-- Sidebar -->
+  <app-sidebar [isCollapsed]="sidebarCollapsed" [showMobileOverlay]="showMobileSidebar"></app-sidebar>
+  
+  <!-- Main Content -->
+  <main class="main-content" [class.sidebar-collapsed]="sidebarCollapsed">
+    <div class="content-wrapper">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">Gestão de Estoque</h1>
+          <p class="page-subtitle">Controle ingredientes e monitore alertas</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary" (click)="exportStock()">
+            <span class="material-icons">download</span>
+            Exportar
+          </button>
+          <button class="btn-primary" (click)="openAddItemModal()">
+            <span class="material-icons">add</span>
+            Novo Item
+          </button>
+        </div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div class="filters-section">
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <span class="material-icons search-icon">search</span>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Buscar ingredientes..."
+              [(ngModel)]="searchTerm"
+              (input)="filterItems()">
+          </div>
+        </div>
+        
+        <div class="filters-container">
+          <select class="filter-select" [(ngModel)]="selectedStatus" (change)="filterItems()">
+            <option value="">Todos os status</option>
+            <option value="in_stock">Em estoque</option>
+            <option value="low_stock">Estoque baixo</option>
+            <option value="out_of_stock">Sem estoque</option>
+            <option value="expired">Vencido</option>
+            <option value="near_expiry">Próximo ao vencimento</option>
+          </select>
+          
+          <select class="filter-select" [(ngModel)]="selectedCategory" (change)="filterItems()">
+            <option value="">Todas as categorias</option>
+            <option value="carnes">Carnes</option>
+            <option value="vegetais">Vegetais</option>
+            <option value="laticinios">Laticínios</option>
+            <option value="temperos">Temperos</option>
+            <option value="bebidas">Bebidas</option>
+            <option value="outros">Outros</option>
+          </select>
+          
+          <button class="btn-outline" (click)="clearFilters()">
+            <span class="material-icons">clear</span>
+            Limpar Filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Stock Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <span class="material-icons">inventory</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ stockItems.length }}</h3>
+            <p class="stat-label">Total de Itens</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon in-stock">
+            <span class="material-icons">check_circle</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ getInStockCount() }}</h3>
+            <p class="stat-label">Em Estoque</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon low-stock">
+            <span class="material-icons">warning</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ getLowStockCount() }}</h3>
+            <p class="stat-label">Estoque Baixo</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon expired">
+            <span class="material-icons">error</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ getExpiredCount() }}</h3>
+            <p class="stat-label">Vencidos</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts Section -->
+      <div class="alerts-section" *ngIf="getAlerts().length > 0">
+        <div class="section-header">
+          <h2 class="section-title">Alertas Urgentes</h2>
+          <button class="btn-text" (click)="dismissAllAlerts()">
+            Dispensar Todos
+          </button>
+        </div>
+        
+        <div class="alerts-grid">
+          <div 
+            *ngFor="let alert of getAlerts()" 
+            class="alert-card"
+            [class]="alert.type">
+            <div class="alert-icon">
+              <span class="material-icons">{{ getAlertIcon(alert.type) }}</span>
+            </div>
+            <div class="alert-content">
+              <h4 class="alert-title">{{ alert.title }}</h4>
+              <p class="alert-message">{{ alert.message }}</p>
+              <div class="alert-meta">
+                <span class="alert-item">{{ alert.itemName }}</span>
+                <span class="alert-quantity" *ngIf="alert.currentQuantity !== undefined">
+                  {{ alert.currentQuantity }} {{ alert.unit }}
+                </span>
+              </div>
+            </div>
+            <div class="alert-actions">
+              <button class="btn-sm primary" (click)="handleAlert(alert)">
+                {{ getAlertActionText(alert.type) }}
+              </button>
+              <button class="btn-sm secondary" (click)="dismissAlert(alert)">
+                <span class="material-icons">close</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stock Items -->
+      <div class="stock-section">
+        <div class="section-header">
+          <h2 class="section-title">Itens do Estoque</h2>
+          <div class="view-controls">
+            <button 
+              class="view-btn" 
+              [class.active]="viewMode === 'grid'"
+              (click)="setViewMode('grid')">
+              <span class="material-icons">grid_view</span>
+            </button>
+            <button 
+              class="view-btn" 
+              [class.active]="viewMode === 'list'"
+              (click)="setViewMode('list')">
+              <span class="material-icons">view_list</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid View -->
+        <div class="stock-grid" *ngIf="viewMode === 'grid' && filteredItems.length > 0">
+          <div 
+            *ngFor="let item of filteredItems" 
+            class="stock-card"
+            [class]="getItemStatusClass(item)">
+            
+            <div class="card-header">
+              <div class="item-category" [attr.data-category]="item.category">
+                {{ getCategoryName(item.category) }}
+              </div>
+              <div class="item-status" [class]="getItemStatus(item)">
+                <span class="material-icons">{{ getStatusIcon(getItemStatus(item)) }}</span>
+              </div>
+            </div>
+            
+            <div class="card-content">
+              <h3 class="item-name">{{ item.name }}</h3>
+              
+              <div class="quantity-info">
+                <div class="current-quantity">
+                  <span class="quantity-value">{{ item.currentQuantity }}</span>
+                  <span class="quantity-unit">{{ item.unit }}</span>
+                </div>
+                <div class="quantity-bar">
+                  <div class="quantity-progress" 
+                       [style.width.%]="getQuantityPercentage(item)"
+                       [class]="getQuantityBarClass(item)"></div>
+                </div>
+                <div class="quantity-limits">
+                  <span class="min-quantity">Min: {{ item.minimumQuantity }}</span>
+                  <span class="max-quantity">Max: {{ item.maximumQuantity || 'N/A' }}</span>
+                </div>
+              </div>
+              
+              <div class="item-dates">
+                <div class="date-item" *ngIf="item.expiryDate">
+                  <span class="material-icons">event</span>
+                  <span class="date-label">Vence em:</span>
+                  <span class="date-value" [class]="getExpiryClass(item.expiryDate)">
+                    {{ formatDate(item.expiryDate) }}
+                  </span>
+                </div>
+                <div class="date-item">
+                  <span class="material-icons">update</span>
+                  <span class="date-label">Atualizado:</span>
+                  <span class="date-value">{{ formatRelativeDate(item.updatedAt) }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="card-actions">
+              <button class="action-btn edit" (click)="editItem(item)" title="Editar">
+                <span class="material-icons">edit</span>
+              </button>
+              <button class="action-btn restock" (click)="restockItem(item)" title="Repor Estoque">
+                <span class="material-icons">add_shopping_cart</span>
+              </button>
+              <button class="action-btn delete" (click)="deleteItem(item)" title="Excluir">
+                <span class="material-icons">delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div class="stock-table" *ngIf="viewMode === 'list' && filteredItems.length > 0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Categoria</th>
+                <th>Quantidade</th>
+                <th>Status</th>
+                <th>Validade</th>
+                <th>Última Atualização</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of filteredItems" class="table-row" [class]="getItemStatusClass(item)">
+                <td class="item-cell">
+                  <div class="item-info">
+                    <h4 class="item-name">{{ item.name }}</h4>
+                    <p class="item-description" *ngIf="item.description">{{ item.description }}</p>
+                  </div>
+                </td>
+                <td>
+                  <span class="category-badge" [attr.data-category]="item.category">
+                    {{ getCategoryName(item.category) }}
+                  </span>
+                </td>
+                <td class="quantity-cell">
+                  <div class="quantity-display">
+                    <span class="current">{{ item.currentQuantity }} {{ item.unit }}</span>
+                    <div class="quantity-bar-small">
+                      <div class="progress-fill" 
+                           [style.width.%]="getQuantityPercentage(item)"
+                           [class]="getQuantityBarClass(item)"></div>
+                    </div>
+                    <span class="limits">{{ item.minimumQuantity }} - {{ item.maximumQuantity || '∞' }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="status-badge" [class]="getItemStatus(item)">
+                    <span class="material-icons">{{ getStatusIcon(getItemStatus(item)) }}</span>
+                    {{ getStatusText(getItemStatus(item)) }}
+                  </span>
+                </td>
+                <td class="expiry-cell">
+                  <span *ngIf="item.expiryDate" [class]="getExpiryClass(item.expiryDate)">
+                    {{ formatDate(item.expiryDate) }}
+                  </span>
+                  <span *ngIf="!item.expiryDate" class="no-expiry">Sem validade</span>
+                </td>
+                <td class="date-cell">
+                  {{ formatRelativeDate(item.updatedAt) }}
+                </td>
+                <td class="actions-cell">
+                  <div class="table-actions">
+                    <button class="action-btn edit" (click)="editItem(item)" title="Editar">
+                      <span class="material-icons">edit</span>
+                    </button>
+                    <button class="action-btn restock" (click)="restockItem(item)" title="Repor">
+                      <span class="material-icons">add_shopping_cart</span>
+                    </button>
+                    <button class="action-btn delete" (click)="deleteItem(item)" title="Excluir">
+                      <span class="material-icons">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="filteredItems.length === 0">
+          <div class="empty-icon">
+            <span class="material-icons">inventory_2</span>
+          </div>
+          <h3 class="empty-title">Nenhum item encontrado</h3>
+          <p class="empty-message">
+            {{ searchTerm || selectedStatus || selectedCategory ? 
+               'Tente ajustar os filtros de busca.' : 
+               'Comece adicionando itens ao seu estoque.' }}
+          </p>
+          <button class="btn-primary" (click)="openAddItemModal()" *ngIf="!searchTerm && !selectedStatus && !selectedCategory">
+            <span class="material-icons">add</span>
+            Adicionar Primeiro Item
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit Item Modal -->
+<div class="modal-overlay" *ngIf="showItemModal" (click)="closeItemModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">{{ editingItem ? 'Editar Item' : 'Novo Item' }}</h2>
+      <button class="modal-close" (click)="closeItemModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    
+    <form class="item-form" (ngSubmit)="saveItem()" #itemForm="ngForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="itemName">Nome do Item *</label>
+          <input 
+            type="text" 
+            id="itemName" 
+            name="itemName"
+            class="form-input"
+            [(ngModel)]="itemFormData.name"
+            required
+            placeholder="Ex: Carne Bovina">
+        </div>
+        
+        <div class="form-group">
+          <label for="itemCategory">Categoria *</label>
+          <select 
+            id="itemCategory" 
+            name="itemCategory"
+            class="form-select"
+            [(ngModel)]="itemFormData.category"
+            required>
+            <option value="">Selecione uma categoria</option>
+            <option value="carnes">Carnes</option>
+            <option value="vegetais">Vegetais</option>
+            <option value="laticinios">Laticínios</option>
+            <option value="temperos">Temperos</option>
+            <option value="bebidas">Bebidas</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="itemDescription">Descrição</label>
+        <textarea 
+          id="itemDescription" 
+          name="itemDescription"
+          class="form-textarea"
+          [(ngModel)]="itemFormData.description"
+          rows="2"
+          placeholder="Descrição opcional do item..."></textarea>
+      </div>
+      
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="currentQuantity">Quantidade Atual *</label>
+          <input 
+            type="number" 
+            id="currentQuantity" 
+            name="currentQuantity"
+            class="form-input"
+            [(ngModel)]="itemFormData.currentQuantity"
+            required
+            min="0"
+            step="0.1">
+        </div>
+        
+        <div class="form-group">
+          <label for="itemUnit">Unidade *</label>
+          <select 
+            id="itemUnit" 
+            name="itemUnit"
+            class="form-select"
+            [(ngModel)]="itemFormData.unit"
+            required>
+            <option value="">Selecione</option>
+            <option value="kg">Quilogramas (kg)</option>
+            <option value="g">Gramas (g)</option>
+            <option value="l">Litros (l)</option>
+            <option value="ml">Mililitros (ml)</option>
+            <option value="unidade">Unidades</option>
+            <option value="pacote">Pacotes</option>
+            <option value="caixa">Caixas</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="minimumQuantity">Quantidade Mínima *</label>
+          <input 
+            type="number" 
+            id="minimumQuantity" 
+            name="minimumQuantity"
+            class="form-input"
+            [(ngModel)]="itemFormData.minimumQuantity"
+            required
+            min="0"
+            step="0.1">
+        </div>
+        
+        <div class="form-group">
+          <label for="maximumQuantity">Quantidade Máxima</label>
+          <input 
+            type="number" 
+            id="maximumQuantity" 
+            name="maximumQuantity"
+            class="form-input"
+            [(ngModel)]="itemFormData.maximumQuantity"
+            min="0"
+            step="0.1">
+        </div>
+      </div>
+      
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="purchaseDate">Data de Compra</label>
+          <input 
+            type="date" 
+            id="purchaseDate" 
+            name="purchaseDate"
+            class="form-input"
+            [(ngModel)]="itemFormData.purchaseDate">
+        </div>
+        
+        <div class="form-group">
+          <label for="expiryDate">Data de Validade</label>
+          <input 
+            type="date" 
+            id="expiryDate" 
+            name="expiryDate"
+            class="form-input"
+            [(ngModel)]="itemFormData.expiryDate">
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeItemModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="!itemForm.valid">
+          <span class="material-icons">save</span>
+          {{ editingItem ? 'Salvar Alterações' : 'Adicionar Item' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Restock Modal -->
+<div class="modal-overlay" *ngIf="showRestockModal" (click)="closeRestockModal()">
+  <div class="modal-content small" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Repor Estoque</h2>
+      <button class="modal-close" (click)="closeRestockModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    
+    <div class="restock-form" *ngIf="restockingItem">
+      <div class="item-info">
+        <h3>{{ restockingItem.name }}</h3>
+        <p>Quantidade atual: <strong>{{ restockingItem.currentQuantity }} {{ restockingItem.unit }}</strong></p>
+      </div>
+      
+      <div class="form-group">
+        <label for="restockQuantity">Quantidade a adicionar *</label>
+        <input 
+          type="number" 
+          id="restockQuantity" 
+          class="form-input"
+          [(ngModel)]="restockQuantity"
+          min="0.1"
+          step="0.1"
+          placeholder="0">
+      </div>
+      
+      <div class="form-group">
+        <label for="restockDate">Data da reposição</label>
+        <input 
+          type="date" 
+          id="restockDate" 
+          class="form-input"
+          [(ngModel)]="restockDate">
+      </div>
+      
+      <div class="restock-preview" *ngIf="restockQuantity > 0">
+        <p>Nova quantidade: <strong>{{ restockingItem.currentQuantity + restockQuantity }} {{ restockingItem.unit }}</strong></p>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeRestockModal()">
+          Cancelar
+        </button>
+        <button type="button" class="btn-primary" (click)="confirmRestock()" [disabled]="!restockQuantity || restockQuantity <= 0">
+          <span class="material-icons">add_shopping_cart</span>
+          Confirmar Reposição
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
