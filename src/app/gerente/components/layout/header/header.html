@@ -1,0 +1,113 @@
+<header class="app-header">
+  <div class="header-left">
+    <button class="menu-toggle" (click)="toggleSidebar()">
+      <span class="material-icons">menu</span>
+    </button>
+    
+    <div class="logo">
+      <h1 class="logo-text">
+        <span class="text-wine">Food</span><span class="text-gold">Flow</span>
+      </h1>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <div class="search-bar">
+      <span class="material-icons search-icon">search</span>
+      <input 
+        type="text" 
+        placeholder="Buscar pratos, categorias, ingredientes..."
+        class="search-input"
+        [(ngModel)]="searchQuery"
+        (keyup.enter)="onSearch()">
+    </div>
+  </div>
+
+  <div class="header-right">
+    <!-- Notifications -->
+    <div class="notification-dropdown" [class.active]="showNotifications">
+      <button class="notification-btn" (click)="toggleNotifications()">
+        <span class="material-icons">notifications</span>
+        <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+      </button>
+      
+      <div class="dropdown-menu" *ngIf="showNotifications">
+        <div class="dropdown-header">
+          <h4>Notificações</h4>
+          <button class="mark-all-read" (click)="markAllAsRead()">Marcar todas como lidas</button>
+        </div>
+        
+        <div class="notification-list">
+          <div class="notification-item" *ngFor="let notification of notifications" [class.unread]="!notification.read">
+            <div class="notification-icon" [class]="notification.type">
+              <span class="material-icons">{{ getNotificationIcon(notification.type) }}</span>
+            </div>
+            <div class="notification-content">
+              <p class="notification-title">{{ notification.title }}</p>
+              <p class="notification-message">{{ notification.message }}</p>
+              <span class="notification-time">{{ getTimeAgo(notification.createdAt) }}</span>
+            </div>
+          </div>
+          
+          <div class="no-notifications" *ngIf="notifications.length === 0">
+            <span class="material-icons">notifications_none</span>
+            <p>Nenhuma notificação</p>
+          </div>
+        </div>
+        
+        <div class="dropdown-footer">
+          <a href="#" class="view-all">Ver todas as notificações</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile -->
+    <div class="user-dropdown" [class.active]="showUserMenu">
+      <button class="user-btn" (click)="toggleUserMenu()">
+        <img [src]="currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face'" 
+             [alt]="currentUser?.name" 
+             class="user-avatar">
+        <span class="user-name">{{ currentUser?.name }}</span>
+        <span class="material-icons dropdown-arrow">keyboard_arrow_down</span>
+      </button>
+      
+      <div class="dropdown-menu" *ngIf="showUserMenu">
+        <div class="user-info">
+          <img [src]="currentUser?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=60&h=60&fit=crop&crop=face'" 
+               [alt]="currentUser?.name" 
+               class="user-avatar-large">
+          <div class="user-details">
+            <h4>{{ currentUser?.name }}</h4>
+            <p>{{ currentUser?.email }}</p>
+            <span class="user-role">{{ getUserRoleLabel(currentUser?.role) }}</span>
+          </div>
+        </div>
+        
+        <div class="menu-divider"></div>
+        
+        <div class="menu-items">
+          <a href="#" class="menu-item">
+            <span class="material-icons">person</span>
+            Meu Perfil
+          </a>
+          <a href="#" class="menu-item">
+            <span class="material-icons">settings</span>
+            Configurações
+          </a>
+          <a href="#" class="menu-item">
+            <span class="material-icons">help</span>
+            Ajuda
+          </a>
+        </div>
+        
+        <div class="menu-divider"></div>
+        
+        <button class="menu-item logout-btn" (click)="logout()">
+          <span class="material-icons">logout</span>
+          Sair
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+

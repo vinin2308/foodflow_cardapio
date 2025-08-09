@@ -1,0 +1,404 @@
+<div class="dishes-container">
+  <!-- Header -->
+  <app-header (sidebarToggle)="toggleSidebar()"></app-header>
+  
+  <!-- Sidebar -->
+  <app-sidebar [isCollapsed]="sidebarCollapsed" [showMobileOverlay]="showMobileSidebar"></app-sidebar>
+  
+  <!-- Main Content -->
+  <main class="main-content" [class.sidebar-collapsed]="sidebarCollapsed">
+    <div class="content-wrapper">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="header-content">
+          <h1 class="page-title">Gestão de Pratos</h1>
+          <p class="page-subtitle">Cadastre e gerencie os pratos do seu restaurante</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-secondary" (click)="exportDishes()">
+            <span class="material-icons">download</span>
+            Exportar
+          </button>
+          <button class="btn-primary" (click)="openAddDishModal()">
+            <span class="material-icons">add</span>
+            Novo Prato
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters and Search -->
+      <div class="filters-section">
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <span class="material-icons search-icon">search</span>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Buscar pratos..."
+              [(ngModel)]="searchTerm"
+              (input)="filterDishes()">
+          </div>
+        </div>
+        
+        <div class="filters-container">
+          <select class="filter-select" [(ngModel)]="selectedCategory" (change)="filterDishes()">
+            <option value="">Todas as categorias</option>
+            <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
+          </select>
+          
+          <select class="filter-select" [(ngModel)]="selectedStatus" (change)="filterDishes()">
+            <option value="">Todos os status</option>
+            <option value="available">Disponível</option>
+            <option value="unavailable">Indisponível</option>
+          </select>
+          
+          <button class="btn-outline" (click)="clearFilters()">
+            <span class="material-icons">clear</span>
+            Limpar Filtros
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon total">
+            <span class="material-icons">restaurant_menu</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ dishes.length }}</h3>
+            <p class="stat-label">Total de Pratos</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon available">
+            <span class="material-icons">check_circle</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ getAvailableDishesCount() }}</h3>
+            <p class="stat-label">Disponíveis</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon categories">
+            <span class="material-icons">category</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ categories.length }}</h3>
+            <p class="stat-label">Categorias</p>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon popular">
+            <span class="material-icons">trending_up</span>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-value">{{ getMostPopularDish()?.name || 'N/A' }}</h3>
+            <p class="stat-label">Mais Popular</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dishes Grid -->
+      <div class="dishes-section">
+        <div class="section-header">
+          <h2 class="section-title">Pratos Cadastrados</h2>
+          <div class="view-controls">
+            <button 
+              class="view-btn" 
+              [class.active]="viewMode === 'grid'"
+              (click)="setViewMode('grid')">
+              <span class="material-icons">grid_view</span>
+            </button>
+            <button 
+              class="view-btn" 
+              [class.active]="viewMode === 'list'"
+              (click)="setViewMode('list')">
+              <span class="material-icons">view_list</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Grid View -->
+        <div class="dishes-grid" *ngIf="viewMode === 'grid' && filteredDishes.length > 0">
+          <div class="dish-card" *ngFor="let dish of filteredDishes">
+            <div class="dish-image-container">
+              <img [src]="dish.image" [alt]="dish.name" class="dish-image">
+              <div class="dish-status" [class]="dish.status">
+                <span class="material-icons">{{ dish.status === 'available' ? 'check_circle' : 'cancel' }}</span>
+              </div>
+              <div class="dish-actions">
+                <button class="action-btn edit" (click)="editDish(dish)" title="Editar">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button class="action-btn delete" (click)="deleteDish(dish)" title="Excluir">
+                  <span class="material-icons">delete</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="dish-content">
+              <div class="dish-header">
+                <h3 class="dish-name">{{ dish.name }}</h3>
+                <span class="dish-price">R$ {{ dish.price | number:'1.2-2' }}</span>
+              </div>
+              
+              <p class="dish-description">{{ dish.description }}</p>
+              
+              <div class="dish-meta">
+                <span class="dish-category">{{ getCategoryName(dish.categoryId) }}</span>
+                <span class="dish-prep-time">
+                  <span class="material-icons">schedule</span>
+                  {{ dish.preparationTime }}min
+                </span>
+              </div>
+              
+              <div class="dish-ingredients">
+                <span class="ingredients-label">Ingredientes:</span>
+                <div class="ingredients-list">
+                  <span class="ingredient" *ngFor="let ingredient of dish.ingredients.slice(0, 3)">
+                    {{ ingredient.name }}
+                  </span>
+                  <span class="more-ingredients" *ngIf="dish.ingredients.length > 3">
+                    +{{ dish.ingredients.length - 3 }} mais
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- List View -->
+        <div class="dishes-table" *ngIf="viewMode === 'list' && filteredDishes.length > 0">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Prato</th>
+                <th>Categoria</th>
+                <th>Preço</th>
+                <th>Status</th>
+                <th>Tempo Preparo</th>
+                <th>Ingredientes</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let dish of filteredDishes" class="table-row">
+                <td class="dish-cell">
+                  <div class="dish-info">
+                    <img [src]="dish.image" [alt]="dish.name" class="dish-thumb">
+                    <div class="dish-details">
+                      <h4 class="dish-name">{{ dish.name }}</h4>
+                      <p class="dish-description">{{ dish.description | slice:0:50 }}...</p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="category-badge">{{ getCategoryName(dish.categoryId) }}</span>
+                </td>
+                <td class="price-cell">R$ {{ dish.price | number:'1.2-2' }}</td>
+                <td>
+                  <span class="status-badge" [class]="dish.status">
+                    {{ dish.status === 'available' ? 'Disponível' : 'Indisponível' }}
+                  </span>
+                </td>
+                <td>{{ dish.preparationTime }}min</td>
+                <td class="ingredients-cell">
+                  <div class="ingredients-preview">
+                    <span *ngFor="let ingredient of dish.ingredients.slice(0, 2)" class="ingredient-tag">
+                      {{ ingredient.name }}
+                    </span>
+                    <span *ngIf="dish.ingredients.length > 2" class="more-tag">
+                      +{{ dish.ingredients.length - 2 }}
+                    </span>
+                  </div>
+                </td>
+                <td class="actions-cell">
+                  <div class="table-actions">
+                    <button class="action-btn edit" (click)="editDish(dish)" title="Editar">
+                      <span class="material-icons">edit</span>
+                    </button>
+                    <button class="action-btn delete" (click)="deleteDish(dish)" title="Excluir">
+                      <span class="material-icons">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state" *ngIf="filteredDishes.length === 0">
+          <div class="empty-icon">
+            <span class="material-icons">restaurant_menu</span>
+          </div>
+          <h3 class="empty-title">Nenhum prato encontrado</h3>
+          <p class="empty-message">
+            {{ searchTerm || selectedCategory || selectedStatus ? 
+               'Tente ajustar os filtros de busca.' : 
+               'Comece cadastrando seu primeiro prato.' }}
+          </p>
+          <button class="btn-primary" (click)="openAddDishModal()" *ngIf="!searchTerm && !selectedCategory && !selectedStatus">
+            <span class="material-icons">add</span>
+            Cadastrar Primeiro Prato
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit Dish Modal -->
+<div class="modal-overlay" *ngIf="showDishModal" (click)="closeDishModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">{{ editingDish ? 'Editar Prato' : 'Novo Prato' }}</h2>
+      <button class="modal-close" (click)="closeDishModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+    
+    <form class="dish-form" (ngSubmit)="saveDish()" #dishForm="ngForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="dishName">Nome do Prato *</label>
+          <input 
+            type="text" 
+            id="dishName" 
+            name="dishName"
+            class="form-input"
+            [(ngModel)]="dishFormData.name"
+            required
+            placeholder="Ex: Hambúrguer Artesanal">
+        </div>
+        
+        <div class="form-group">
+          <label for="dishCategory">Categoria *</label>
+          <select 
+            id="dishCategory" 
+            name="dishCategory"
+            class="form-select"
+            [(ngModel)]="dishFormData.categoryId"
+            required>
+            <option value="">Selecione uma categoria</option>
+            <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="dishPrice">Preço (R$) *</label>
+          <input 
+            type="number" 
+            id="dishPrice" 
+            name="dishPrice"
+            class="form-input"
+            [(ngModel)]="dishFormData.price"
+            required
+            min="0"
+            step="0.01"
+            placeholder="0,00">
+        </div>
+        
+        <div class="form-group">
+          <label for="dishPrepTime">Tempo de Preparo (min) *</label>
+          <input 
+            type="number" 
+            id="dishPrepTime" 
+            name="dishPrepTime"
+            class="form-input"
+            [(ngModel)]="dishFormData.preparationTime"
+            required
+            min="1"
+            placeholder="15">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="dishDescription">Descrição *</label>
+        <textarea 
+          id="dishDescription" 
+          name="dishDescription"
+          class="form-textarea"
+          [(ngModel)]="dishFormData.description"
+          required
+          rows="3"
+          placeholder="Descreva o prato, seus ingredientes principais e características especiais..."></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="dishImage">URL da Imagem</label>
+        <input 
+          type="url" 
+          id="dishImage" 
+          name="dishImage"
+          class="form-input"
+          [(ngModel)]="dishFormData.image"
+          placeholder="https://exemplo.com/imagem.jpg">
+      </div>
+      
+      <div class="form-group">
+        <label>Ingredientes *</label>
+        <div class="ingredients-input">
+          <div class="ingredient-item" *ngFor="let ingredient of dishFormData.ingredients; let i = index">
+            <input 
+              type="text" 
+              class="form-input ingredient-name"
+              [(ngModel)]="ingredient.name"
+              [name]="'ingredientName' + i"
+              placeholder="Nome do ingrediente"
+              required>
+            <input 
+              type="number" 
+              class="form-input ingredient-quantity"
+              [(ngModel)]="ingredient.quantity"
+              [name]="'ingredientQuantity' + i"
+              placeholder="Qtd"
+              min="0"
+              step="0.1"
+              required>
+            <input 
+              type="text" 
+              class="form-input ingredient-unit"
+              [(ngModel)]="ingredient.unit"
+              [name]="'ingredientUnit' + i"
+              placeholder="Unidade"
+              required>
+            <button type="button" class="btn-remove" (click)="removeIngredient(i)">
+              <span class="material-icons">remove</span>
+            </button>
+          </div>
+          <button type="button" class="btn-add-ingredient" (click)="addIngredient()">
+            <span class="material-icons">add</span>
+            Adicionar Ingrediente
+          </button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            name="dishAvailable"
+            [(ngModel)]="dishFormData.available">
+          <span class="checkmark"></span>
+          Prato disponível para pedidos
+        </label>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeDishModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-primary" [disabled]="!dishForm.valid">
+          <span class="material-icons">save</span>
+          {{ editingDish ? 'Salvar Alterações' : 'Cadastrar Prato' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+

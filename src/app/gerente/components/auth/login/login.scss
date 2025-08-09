@@ -1,0 +1,349 @@
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(135deg, var(--foodflow-wine) 0%, var(--foodflow-dark-red) 100%);
+  overflow: hidden;
+  padding: 20px;
+}
+
+.food-animation-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-food {
+  position: absolute;
+  animation: float 10s infinite ease-in-out;
+  opacity: 0.3;
+  
+  .food-icon {
+    width: 40px;
+    height: 40px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    animation: rotate 15s infinite linear;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  50% {
+    transform: translateY(-10px) translateX(-15px);
+  }
+  75% {
+    transform: translateY(-30px) translateX(5px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-card {
+  background: var(--foodflow-white);
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  padding: 40px;
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 40px;
+  
+  .logo-text {
+    font-size: 3rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -1px;
+  }
+  
+  .logo-subtitle {
+    color: var(--foodflow-gray);
+    font-size: 1.1rem;
+    margin: 8px 0 0 0;
+    font-weight: 500;
+  }
+}
+
+.auth-form {
+  .form-group {
+    margin-bottom: 24px;
+    
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--foodflow-dark-gray);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 16px 20px;
+      border: 2px solid #E9ECEF;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background: var(--foodflow-white);
+      
+      &:focus {
+        outline: none;
+        border-color: var(--foodflow-wine);
+        box-shadow: 0 0 0 4px rgba(114, 47, 55, 0.1);
+      }
+      
+      &.error {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.1);
+      }
+      
+      &::placeholder {
+        color: #adb5bd;
+      }
+    }
+  }
+}
+
+.password-input {
+  position: relative;
+  
+  .password-toggle {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--foodflow-gray);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      color: var(--foodflow-wine);
+      background: rgba(114, 47, 55, 0.1);
+    }
+    
+    .material-icons {
+      font-size: 20px;
+    }
+  }
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--foodflow-dark-gray);
+    
+    input[type="checkbox"] {
+      display: none;
+    }
+    
+    .checkmark {
+      width: 18px;
+      height: 18px;
+      border: 2px solid #dee2e6;
+      border-radius: 4px;
+      margin-right: 8px;
+      position: relative;
+      transition: all 0.3s ease;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 2px;
+        width: 4px;
+        height: 8px;
+        border: solid var(--foodflow-white);
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+    }
+    
+    input[type="checkbox"]:checked + .checkmark {
+      background: var(--foodflow-wine);
+      border-color: var(--foodflow-wine);
+      
+      &::after {
+        opacity: 1;
+      }
+    }
+  }
+  
+  .forgot-link {
+    color: var(--foodflow-wine);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      color: var(--foodflow-dark-red);
+      text-decoration: underline;
+    }
+  }
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #dc3545;
+}
+
+.btn-full {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid var(--foodflow-white);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.auth-footer {
+  text-align: center;
+  
+  p {
+    color: var(--foodflow-gray);
+    margin: 0 0 24px 0;
+    
+    .register-link {
+      color: var(--foodflow-wine);
+      text-decoration: none;
+      font-weight: 600;
+      
+      &:hover {
+        color: var(--foodflow-dark-red);
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  .demo-credentials {
+    background: var(--foodflow-light-gray);
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px dashed var(--foodflow-wine);
+    
+    h4 {
+      color: var(--foodflow-wine);
+      margin: 0 0 12px 0;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    p {
+      margin: 4px 0;
+      font-size: 0.9rem;
+      color: var(--foodflow-dark-gray);
+      
+      strong {
+        color: var(--foodflow-wine);
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 16px;
+  }
+  
+  .auth-card {
+    padding: 32px 24px;
+    border-radius: 16px;
+  }
+  
+  .auth-header .logo-text {
+    font-size: 2.5rem;
+  }
+  
+  .floating-food .food-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .form-options {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-header .logo-text {
+    font-size: 2rem;
+  }
+  
+  .floating-food .food-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
