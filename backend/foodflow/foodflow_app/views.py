@@ -41,7 +41,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update']:
+        if self.action in ['create', 'update', 'partial_update']:
             return PedidoWriteSerializer
         return PedidoReadSerializer
 
@@ -49,15 +49,18 @@ class PedidoViewSet(viewsets.ModelViewSet):
         return {**super().get_serializer_context(), "request": self.request}
 
     def get_queryset(self):
-        user = self.request.user
-        if user.is_authenticated:
-            return Pedido.objects.filter(criado_por=user)
-        return Pedido.objects.filter(criado_por__isnull=True)
+        return Pedido.objects.all()
 
     @action(detail=False, methods=['get', 'post'])
     def cozinha(self, request):
+        status_param = request.GET.get('status')
+
         if request.method == 'GET':
-            pedidos = Pedido.objects.filter(status=PedidoStatus.PENDENTE)
+            if status_param:
+                pedidos = Pedido.objects.filter(status=status_param)
+            else:
+                pedidos = Pedido.objects.all()
+
             serializer = self.get_serializer(pedidos, many=True)
             return Response(serializer.data)
 
@@ -67,6 +70,20 @@ class PedidoViewSet(viewsets.ModelViewSet):
             pedido = serializer.save()
             read_serializer = PedidoReadSerializer(pedido)
             return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'])
+    def finalizar(self, request, pk=None):
+        pedido = self.get_object()
+        pedido.status = PedidoStatus.PRONTO  # ou 'READY', dependendo do seu enum
+        pedido.save()
+        serializer = PedidoReadSerializer(pedido)
+        return Response(serializer.data)
+    
+    def destroy(self, request, *args, **kwargs):
+        pedido = self.get_object()
+        pedido.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class PedidoItemViewSet(viewsets.ModelViewSet):
     queryset = PedidoItem.objects.all()

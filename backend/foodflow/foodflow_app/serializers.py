@@ -45,11 +45,10 @@ class PedidoItemWriteSerializer(serializers.ModelSerializer):
 
 # 🔹 Pedido para leitura
 class PedidoReadSerializer(serializers.ModelSerializer):
-    itens = PedidoItemSerializer(many=True)
-
+    itens = PedidoItemSerializer(many=True, read_only=True)
     class Meta:
         model = Pedido
-        fields = ['id', 'mesa', 'nome_cliente', 'status', 'tempo_estimado', 'itens']
+        fields = '__all__'
 
 # 🔹 Pedido para escrita
 class PedidoWriteSerializer(serializers.ModelSerializer):
@@ -83,8 +82,10 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         instance.status = validated_data.get('status', instance.status)
+        instance.tempo_estimado = validated_data.get('tempo_estimado', instance.tempo_estimado)
         instance.save()
         return instance
+
 
 class PagamentoSerializer(serializers.ModelSerializer):
     class Meta:

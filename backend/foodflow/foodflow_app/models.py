@@ -134,6 +134,8 @@ class Pedido(models.Model):
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    data = models.DateTimeField(default=timezone.now)
+
 
 
 class PedidoUsuario(models.Model):
