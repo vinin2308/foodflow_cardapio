@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { PedidosService } from '../services/pedidos';
+import { PedidosService } from '../services/pedidos.service';
 import { OrderCardComponent } from './components/order-card/order-card';
 import { TimeModalComponent } from './components/time-modal/time-modal';
 import { CommonModule } from '@angular/common';
@@ -7,7 +7,7 @@ import { interval, switchMap } from 'rxjs';
 import { Order, OrderStatus } from '../models/ordel.model';
 import { HeaderComponent } from './components/header/header';
 import { ItemCardapio } from '../models/item-cardapio.model';
-import { PratoService } from '../services/prato';
+import { PratoService } from '../services/prato.service';
 
 @Component({
   standalone: true,

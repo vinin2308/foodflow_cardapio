@@ -4,13 +4,13 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { HttpClientModule } from '@angular/common/http';
 
-import { CarrinhoService } from '../services/carrinho';
+import { CarrinhoService } from '../services/carrinho.service';
 import { CarrinhoComponent } from '../carrinho/carrinho';
 import { ObservacaoModalComponent } from '../cozinha/observacao-modal/observacao-modal';
 
 import { ItemCardapio, CategoriaCardapio } from '../models/item-cardapio.model';
-import { PratoService } from '../services/prato';
-import { CategoriaService } from '../services/categoria';
+import { PratoService } from '../services/prato.service';
+import { CategoriaService } from '../services/categoria.service';
 import { Comanda } from '../models/carrinho.model';
 
 @Component({

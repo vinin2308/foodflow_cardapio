@@ -1,6 +1,6 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CarrinhoService } from '../services/carrinho';
+import { CarrinhoService } from '../services/carrinho.service';
 import {ItemCardapio } from '../models/item-cardapio.model';
 import { Comanda } from '../models/carrinho.model';
 
