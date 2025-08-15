@@ -25,9 +25,11 @@ export class CozinhaComponent implements OnInit {
   pedidoSelecionado: Order | null = null;
 
   timeModal = {
-    isVisible: false,
-    order: null as Order | null
-  };
+  isVisible: false,
+  order: null as Order | null,
+  isFinalizing: false
+};
+
 
   notification = {
     show: false,
@@ -86,22 +88,34 @@ export class CozinhaComponent implements OnInit {
   }
 
   onStartPreparation(pedidoId: number): void {
-    const pedido = this.pedidos.find(p => p.id === pedidoId);
-    if (pedido) {
-      this.timeModal.order = pedido;
-      this.timeModal.isVisible = true;
-    }
+  const pedido = this.pedidos.find(p => p.id === pedidoId);
+  if (pedido) {
+    this.timeModal.order = pedido;
+    this.timeModal.isVisible = true;
+    this.timeModal.isFinalizing = false;
   }
+}
 
   onFinishOrder(pedidoId: number): void {
-    const pedido = this.pedidos.find(p => p.id === pedidoId);
-    if (pedido) {
-      this.timeModal.order = pedido;
-      this.timeModal.isVisible = true;
-    }
+  const pedido = this.pedidos.find(p => p.id === pedidoId);
+  if (pedido) {
+    this.timeModal.order = pedido;
+    this.timeModal.isVisible = true;
+    this.timeModal.isFinalizing = true;
   }
+}
 
   onConfirmTimeModal(data: { pedidoId: number, tempoEstimado: number }): void {
+  if (this.timeModal.isFinalizing) {
+    this.pedidoService.finalizarPedido(data.pedidoId).subscribe({
+      next: () => {
+        this.mostrarNotificacao('Pedido finalizado com sucesso');
+        this.timeModal.isVisible = false;
+        this.carregarPedidos();
+      },
+      error: () => this.mostrarNotificacao('Erro ao finalizar pedido', 'error')
+    });
+  } else {
     this.pedidoService.atualizarTempoEStatus(data.pedidoId, data.tempoEstimado, OrderStatus.PREPARING).subscribe({
       next: () => {
         this.mostrarNotificacao('Pedido marcado como em preparo');
@@ -111,6 +125,8 @@ export class CozinhaComponent implements OnInit {
       error: () => this.mostrarNotificacao('Erro ao iniciar preparo', 'error')
     });
   }
+}
+
 
   onCloseTimeModal(): void {
     this.timeModal.isVisible = false;
@@ -118,9 +134,16 @@ export class CozinhaComponent implements OnInit {
   }
 
   onRemoveOrder(pedidoId: number): void {
-    this.pedidos = this.pedidos.filter(p => p.id !== pedidoId);
-    this.aplicarFiltro();
-  }
+  this.pedidoService.removerPedido(pedidoId).subscribe({
+    next: () => {
+      this.pedidos = this.pedidos.filter(p => p.id !== pedidoId);
+      this.aplicarFiltro();
+      this.mostrarNotificacao('Pedido removido com sucesso');
+    },
+    error: () => this.mostrarNotificacao('Erro ao remover pedido', 'error')
+  });
+}
+
 
   mostrarNotificacao(msg: string, tipo: 'success' | 'error' = 'success') {
     this.notification.message = msg;

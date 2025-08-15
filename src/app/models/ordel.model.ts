@@ -15,7 +15,7 @@ export interface Order {
   mesa: number;
   nome_cliente: string;
   status: OrderStatus;
-  tempoEstimado: number;   // veio de `tempo_estimado`
+  tempo_estimado?: number;   // veio de `tempo_estimado`
   itens: OrderItem[];
   data: string;            // mapeia `criado_em`
 }

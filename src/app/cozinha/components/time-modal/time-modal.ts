@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Order } from '../../../models/ordel.model';
-import { PedidosService } from '../../../services/pedidos';
 
 @Component({
   selector: 'app-time-modal',
@@ -14,6 +13,7 @@ import { PedidosService } from '../../../services/pedidos';
 export class TimeModalComponent implements OnChanges {
   @Input() isVisible: boolean = false;
   @Input() order: Order | null = null;
+  @Input() isFinalizing: boolean = false;
   @Output() close = new EventEmitter<void>();
   @Output() confirm = new EventEmitter<{ pedidoId: number; tempoEstimado: number }>();
 
@@ -21,7 +21,7 @@ export class TimeModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['order'] && this.order) {
-      this.prepTime = this.order?.tempoEstimado ?? 15;
+      this.prepTime = this.order?.tempo_estimado ?? 15;
     }
   }
 
@@ -41,10 +41,12 @@ export class TimeModalComponent implements OnChanges {
     this.close.emit();
   }
 
-  onConfirm() {
+  onConfirm(): void {
     if (this.order) {
-      this.confirm.emit({ pedidoId: this.order.id, tempoEstimado: this.prepTime });
+      this.confirm.emit({
+        pedidoId: this.order.id,
+        tempoEstimado: this.prepTime
+      });
     }
   }
-
 }

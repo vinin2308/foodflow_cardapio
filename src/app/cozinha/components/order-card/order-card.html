@@ -11,7 +11,8 @@
 
   <ul class="dish-list">
     <li *ngFor="let item of order.itens">
-      {{ item.quantidade }}x {{ item.prato_nome}}
+      <i class="fas fa-utensils"></i>
+      {{ item.quantidade }}x {{ item.prato_nome }}
       <span *ngIf="item.observacao">({{ item.observacao }})</span>
     </li>
   </ul>
@@ -22,11 +23,10 @@
     </span>
   </div>
 
-  <div class="prep-time" *ngIf="order.status === OrderStatus.PREPARING">
+  <div *ngIf="order.status === OrderStatus.PREPARING" class="prep-time">
     <i class="fas fa-clock"></i>
-    <span [ngClass]="getCountdownClass()">
+    <span class="countdown" [ngClass]="{ 'overtime': isOvertime() }">
       {{ getFormattedRemainingTime() }}
-      <span *ngIf="isOvertime()"> (Atrasado)</span>
     </span>
   </div>
 
@@ -40,7 +40,7 @@
       *ngIf="order.status === OrderStatus.PENDING" 
       class="btn btn-start"
       (click)="onStartPreparation()">
-      <i class="fas fa-play"></i> Iniciar Preparo
+      <i class="fas fa-play"></i> Iniciar Preparo 
     </button>
 
     <button 

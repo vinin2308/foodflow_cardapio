@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angu
 import { CommonModule } from '@angular/common';
 import { Order, OrderStatus } from '../../../models/ordel.model';
 import { ItemCardapio } from '../../../models/item-cardapio.model';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-order-card',
@@ -20,13 +21,15 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   OrderStatus = OrderStatus;
   private updateInterval?: any;
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   ngOnInit(): void {
-    if (this.order.status === OrderStatus.PREPARING) {
-      this.updateInterval = setInterval(() => {
-        // Atualiza a cada segundo para recalcular tempo restante
-      }, 1000);
-    }
+  if (this.order.status === OrderStatus.PREPARING) {
+    this.updateInterval = setInterval(() => {
+      this.cdr.detectChanges(); // força atualização do template
+    }, 1000);
   }
+}
 
   ngOnDestroy(): void {
     if (this.updateInterval) {
@@ -35,8 +38,8 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   getCardClass(): string {
-    return `order-card-${this.order.status}`;
-  }
+  return this.order.status; 
+}
 
   getStatusClass(): string {
     return `status-${this.order.status}`;
@@ -63,15 +66,15 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   getNomePrato(prato_nome: number): string {
-  const prato = this.pratosCardapio.find(p => p.id === prato_nome);
-  return prato ? prato.nome : `Prato #${prato_nome}`;
-}
+    const prato = this.pratosCardapio.find(p => p.id === prato_nome);
+    return prato ? prato.nome : `Prato #${prato_nome}`;
+  }
 
   getFormattedRemainingTime(): string {
-    if (!this.order.tempoEstimado || !this.order.data) return '';
+    if (!this.order.tempo_estimado || !this.order.data) return '';
 
     const criadoEm = new Date(this.order.data).getTime();
-    const prazoMs = this.order.tempoEstimado * 60 * 1000;
+    const prazoMs = this.order.tempo_estimado * 60 * 1000;
     const expiracao = criadoEm + prazoMs;
     const agora = Date.now();
     const diff = Math.max(0, expiracao - agora);
@@ -83,10 +86,10 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   isOvertime(): boolean {
-    if (!this.order.tempoEstimado || !this.order.data) return false;
+    if (!this.order.tempo_estimado || !this.order.data) return false;
 
     const criadoEm = new Date(this.order.data).getTime();
-    const prazoMs = this.order.tempoEstimado * 60 * 1000;
+    const prazoMs = this.order.tempo_estimado * 60 * 1000;
     return Date.now() > criadoEm + prazoMs;
   }
 

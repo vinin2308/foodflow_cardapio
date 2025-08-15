@@ -60,9 +60,11 @@
 <app-time-modal
   [isVisible]="timeModal.isVisible"
   [order]="timeModal.order"
-  (close)="onCloseTimeModal()"
-  (confirm)="onConfirmTimeModal($event)">
+  [isFinalizing]="timeModal.isFinalizing"
+  (confirm)="onConfirmTimeModal($event)"
+  (close)="onCloseTimeModal()">
 </app-time-modal>
+
 
 <!-- ✅ Notificação -->
 <div class="notification" *ngIf="notification.show" [ngClass]="'notification-' + notification.type">
