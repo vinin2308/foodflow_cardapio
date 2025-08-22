@@ -2,6 +2,10 @@ from rest_framework import serializers
 from django.db import transaction
 from .models import Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento
 
+# ----------------------------
+# SERIALIZERS BÁSICOS
+# ----------------------------
+
 class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
@@ -24,7 +28,11 @@ class PratoSerializer(serializers.ModelSerializer):
         model = Prato
         fields = ['id', 'nome', 'descricao', 'preco', 'categoria']
 
-# 🔹 Item do pedido para leitura (com nome do prato)
+# ----------------------------
+# PEDIDO ITEM
+# ----------------------------
+
+# leitura (com nome do prato)
 class PedidoItemSerializer(serializers.ModelSerializer):
     prato_nome = serializers.SerializerMethodField()
 
@@ -35,22 +43,54 @@ class PedidoItemSerializer(serializers.ModelSerializer):
     def get_prato_nome(self, obj):
         return obj.prato.nome if obj.prato else None
 
-# 🔹 Item do pedido para escrita (com ID do prato)
+# escrita (com ID do prato)
 class PedidoItemWriteSerializer(serializers.ModelSerializer):
-    prato = serializers.PrimaryKeyRelatedField(queryset=Prato.objects.filter(ativo=True))
+    prato = serializers.PrimaryKeyRelatedField(queryset=Prato.objects.all())
+    observacao = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = PedidoItem
         fields = ['prato', 'quantidade', 'observacao']
 
-# 🔹 Pedido para leitura
+
+# ----------------------------
+# PEDIDO
+# ----------------------------
+
+# leitura
 class PedidoReadSerializer(serializers.ModelSerializer):
     itens = PedidoItemSerializer(many=True, read_only=True)
+    mesa_numero = serializers.SerializerMethodField()
+    comanda_pai_id = serializers.SerializerMethodField()
+    eh_principal = serializers.SerializerMethodField()
+
     class Meta:
         model = Pedido
-        fields = '__all__'
+        fields = [
+            'id',
+            'mesa',
+            'mesa_numero',
+            'nome_cliente',
+            'status',
+            'tempo_estimado',
+            'codigo_acesso',
+            'criado_em',
+            'atualizado_em',
+            'comanda_pai_id',
+            'eh_principal',
+            'itens',
+        ]
 
-# 🔹 Pedido para escrita
+    def get_mesa_numero(self, obj):
+        return obj.mesa.numero if obj.mesa else None
+
+    def get_comanda_pai_id(self, obj):
+        return obj.comanda_pai.id if obj.comanda_pai else None
+
+    def get_eh_principal(self, obj):
+        return obj.comanda_pai is None
+
+# escrita
 class PedidoWriteSerializer(serializers.ModelSerializer):
     itens = PedidoItemWriteSerializer(many=True)
 
@@ -78,6 +118,32 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
                     observacao=item.get('observacao', ''),
                     preco_unitario=prato.preco
                 )
+
+            # 🔔 Emitir pedido via WebSocket
+            channel_layer = get_channel_layer()
+            payload = {
+                'type': 'pedido_novo',
+                'pedido': {
+                    'id': pedido.id,
+                    'codigo_acesso': pedido.codigo_acesso,
+                    'nome_cliente': pedido.nome_cliente,
+                    'mesa': pedido.mesa.numero,
+                    'status': pedido.status,
+                    'itens': [
+                        {
+                            'prato': item.prato.id,
+                            'quantidade': item.quantidade,
+                            'observacao': item.observacao,
+                            'usuario': item.usuario.username if item.usuario else None
+                        } for item in pedido.itens.all()
+                    ]
+                }
+            }
+            async_to_sync(channel_layer.group_send)(
+                f'comanda_{pedido.codigo_acesso}',
+                payload
+            )
+
         return pedido
 
     def update(self, instance, validated_data):
@@ -86,8 +152,35 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+# ----------------------------
+# PAGAMENTO
+# ----------------------------
 
 class PagamentoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pagamento
         fields = '__all__'
+
+class ComandaSerializer(serializers.ModelSerializer):
+    comanda_pai_id = serializers.SerializerMethodField()
+    eh_principal = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Pedido
+        fields = [
+            'id',
+            'mesa',
+            'nome_cliente',
+            'status',
+            'codigo_acesso',
+            'comanda_pai_id',
+            'eh_principal',
+        ]
+
+    def get_comanda_pai_id(self, obj):
+        return obj.comanda_pai.id if obj.comanda_pai else None
+
+    def get_eh_principal(self, obj):
+        return obj.comanda_pai is None
+
+

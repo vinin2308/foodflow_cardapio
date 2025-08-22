@@ -17,5 +17,6 @@ export interface Order {
   status: OrderStatus;
   tempo_estimado?: number;   // veio de `tempo_estimado`
   itens: OrderItem[];
-  data: string;            // mapeia `criado_em`
+  data: string;  
+  codigo_acesso: string;          // mapeia `criado_em`
 }

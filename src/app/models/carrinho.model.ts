@@ -8,13 +8,17 @@ export interface ItemCarrinho {
 }
 
 export interface Comanda {
-  id?: string;              // ID local da comanda
+  id?: string;
   mesa: number;
   nome_cliente: string;
   status: string;
+  codigo_acesso?: string;
   itens: {
-    prato: number;         // refere-se ao ItemCardapio.id
+    prato: number;
     quantidade: number;
     observacao: string;
   }[];
+  comanda_pai_id?: string;
+  comanda_pai_nome?: string; 
+  eh_principal: boolean;// opcional, se quiser exibir nome
 }

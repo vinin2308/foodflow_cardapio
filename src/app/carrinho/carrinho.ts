@@ -1,8 +1,13 @@
-import { Component, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subject, takeUntil } from 'rxjs';
+
 import { CarrinhoService } from '../services/carrinho.service';
-import {ItemCardapio } from '../models/item-cardapio.model';
+import { WebSocketService } from '../services/websocket.service';
+import { PedidosRealtimeService } from '../services/pedidostemporeal.service';
+import { ItemCardapio } from '../models/item-cardapio.model';
 import { Comanda } from '../models/carrinho.model';
+import { Order } from '../models/ordel.model';
 
 const statusValido = ['pendente', 'enviada', 'preparando', 'pronta'];
 
@@ -13,30 +18,67 @@ const statusValido = ['pendente', 'enviada', 'preparando', 'pronta'];
   templateUrl: './carrinho.html',
   styleUrls: ['./carrinho.scss']
 })
-export class CarrinhoComponent implements OnInit {
+export class CarrinhoComponent implements OnInit, OnDestroy {
   comanda: Comanda | null = null;
-
+  pratosCardapio: ItemCardapio[] = [];
+  pedidosRecebidos: Order[] = [];
   @Output() fechar = new EventEmitter<void>();
-
   confirmandoPedido = false;
 
-  // Recebe o cardápio para buscar preços e nomes
-  pratosCardapio: ItemCardapio[] = [];
+  private destroy$ = new Subject<void>();
 
-  constructor(private carrinhoService: CarrinhoService) {}
+  constructor(
+    private carrinhoService: CarrinhoService,
+    private wsService: WebSocketService,
+    private realtimeService: PedidosRealtimeService
+  ) {}
 
   ngOnInit() {
-    this.carrinhoService.comanda$.subscribe(comanda => {
-      this.comanda = comanda;
-    });
-    this.carrinhoService.pratosCardapio$.subscribe(pratos => {
-      this.pratosCardapio = pratos;
-    });
+    // Subscribes para atualizações de comanda
+    this.carrinhoService.comanda$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(comanda => {
+        this.comanda = comanda;
+
+        // Conecta no WebSocket usando o código de acesso
+        if (comanda) {
+          this.wsService.conectar(comanda.codigo_acesso ?? String(comanda.mesa));
+        }
+      });
+
+    // Subscribes para pratos do cardápio
+    this.carrinhoService.pratosCardapio$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(pratos => {
+        this.pratosCardapio = pratos;
+      });
+
+    // Recebe pedidos em tempo real do WebSocket
+    this.wsService.comanda$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(comandaAtualizada => {
+        this.comanda = comandaAtualizada;
+      });
+
+    // Mantém pedidos em tempo real
+    this.realtimeService.pedidos$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(pedidos => {
+        this.pedidosRecebidos = pedidos;
+      });
   }
 
   onFechar() {
     this.fechar.emit();
   }
+
+  getNomePrato(item: { prato?: number; prato_nome?: string }): string {
+  if (item.prato) {
+    const pratoInfo = this.getPratoPorId(item.prato);
+    return pratoInfo ? pratoInfo.nome : 'Prato desconhecido';
+  }
+  return item.prato_nome || 'Prato desconhecido';
+}
 
   getStatusTexto(status: string): string {
     const statusMap: { [key: string]: string } = {
@@ -48,55 +90,96 @@ export class CarrinhoComponent implements OnInit {
     return statusMap[status] || status;
   }
 
-  aumentarQuantidade(pratoId: number, observacao = '') {
-    if (!this.comanda) return;
-    const item = this.comanda.itens.find(i => i.prato === pratoId && i.observacao === observacao);
-    if (item) {
-      this.carrinhoService.atualizarQuantidade(pratoId, item.quantidade + 1, observacao);
+  getPratoPorId(id: number): ItemCardapio | undefined {
+    return this.pratosCardapio.find(p => p.id === id);
+  }
+
+  formatarPreco(preco: number): string {
+    return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  calcularSubtotal(item: { prato?: number; prato_nome?: string; quantidade: number; observacao: string }): number {
+  let preco = 0;
+  if (item.prato) {
+    const pratoInfo = this.getPratoPorId(item.prato);
+    preco = pratoInfo ? pratoInfo.preco : 0;
+  }
+  return preco * item.quantidade;
+}
+
+calcularTotal(): number {
+  if (!this.comanda) return 0;
+  return this.comanda.itens.reduce((total, item) => {
+    let preco = 0;
+    if (item.prato) {
+      const pratoInfo = this.getPratoPorId(item.prato);
+      preco = pratoInfo ? pratoInfo.preco : 0;
     }
+    return total + preco * item.quantidade;
+  }, 0);
+}
+
+
+  // =========================
+  // ALTERAÇÕES EM TEMPO REAL
+  // =========================
+  adicionarItem(pratoId: number, quantidade = 1, observacao = '') {
+    if (!this.comanda) return;
+
+    const itemExistente = this.comanda.itens.find(
+      i => i.prato === pratoId && i.observacao === observacao
+    );
+
+    if (itemExistente) {
+      itemExistente.quantidade += quantidade;
+    } else {
+      this.comanda.itens.push({ prato: pratoId, quantidade, observacao });
+    }
+
+    this.atualizarComandaRealTime();
   }
 
   diminuirQuantidade(pratoId: number, observacao = '') {
     if (!this.comanda) return;
     const item = this.comanda.itens.find(i => i.prato === pratoId && i.observacao === observacao);
     if (item && item.quantidade > 1) {
-      this.carrinhoService.atualizarQuantidade(pratoId, item.quantidade - 1, observacao);
+      item.quantidade--;
+      this.atualizarComandaRealTime();
     }
   }
 
   removerItem(pratoId: number, observacao = '') {
+    if (!this.comanda) return;
     if (confirm('Remover este item do carrinho?')) {
-      this.carrinhoService.removerItem(pratoId, observacao);
+      this.comanda.itens = this.comanda.itens.filter(
+        i => !(i.prato === pratoId && i.observacao === observacao)
+      );
+      this.atualizarComandaRealTime();
     }
   }
 
-  getPratoPorId(id: number): ItemCardapio | undefined {
-    return this.pratosCardapio.find(p => p.id === id);
+  atualizarObservacao(pratoId: number, novaObs: string) {
+    if (!this.comanda) return;
+    const item = this.comanda.itens.find(i => i.prato === pratoId);
+    if (item) {
+      item.observacao = novaObs;
+      this.atualizarComandaRealTime();
+    }
   }
 
-  formatarPreco(preco: number): string {
-    return preco.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
+  private atualizarComandaRealTime() {
+    if (!this.comanda) return;
+
+    // Atualiza no CarrinhoService
+    this.carrinhoService.atualizarComandas(this.comanda);
+
+    // Envia para todos via WebSocket
+    this.wsService.enviarComandaAtualizada(this.comanda);
   }
 
-  calcularSubtotal(item: { prato: number; quantidade: number; observacao: string }): number {
-    const pratoInfo = this.getPratoPorId(item.prato);
-    const preco = pratoInfo ? pratoInfo.preco : 0;
-    return preco * item.quantidade;
-  }
-
-  calcularTotal(): number {
-    if (!this.comanda) return 0;
-
-    return this.comanda.itens.reduce((total, item) => {
-      const pratoInfo = this.getPratoPorId(item.prato);
-      const preco = pratoInfo ? pratoInfo.preco : 0;
-      return total + preco * item.quantidade;
-    }, 0);
-  }
-
+  // =========================
+  // CONFIRMAR PEDIDO
+  // =========================
   confirmarPedido() {
     if (!this.comanda || this.comanda.itens.length === 0) {
       alert('Carrinho vazio! Adicione itens antes de confirmar o pedido.');
@@ -124,23 +207,25 @@ export class CarrinhoComponent implements OnInit {
           observacao: item.observacao || ''
         }))
       };
-      console.log('Payload enviando para /api/pedidos/:', JSON.stringify(payload, null, 2));
 
-      this.carrinhoService.confirmarPedidoNoCozinha(payload).subscribe({
-  next: () => {
-    this.confirmandoPedido = false;
-    alert('Pedido enviado com sucesso! Aguarde a cozinha.');
-    this.onFechar();
-  },
-  error: (err: any) => {
-    this.confirmandoPedido = false;
-    console.error('Erro ao enviar pedido:', err);
-    if (err.error) {
-      console.error('Detalhes do erro retornado pelo servidor:', JSON.stringify(err.error, null, 2));   
-     }
-    alert('Erro ao enviar o pedido. Tente novamente.');
-  }
-});
+      this.carrinhoService.confirmarPedidoNoCozinha().subscribe({
+        next: (pedidoCriado) => {
+          this.confirmandoPedido = false;
+
+          if (this.comanda) {
+            this.comanda.codigo_acesso = pedidoCriado.codigo_acesso ?? this.comanda.codigo_acesso;
+            this.atualizarComandaRealTime();
+          }
+
+          alert('Pedido enviado com sucesso! Aguarde a cozinha.');
+          this.onFechar();
+        },
+        error: (err: any) => {
+          this.confirmandoPedido = false;
+          console.error('Erro ao enviar pedido:', err);
+          alert('Erro ao enviar o pedido. Tente novamente.');
+        }
+      });
     }
   }
 
@@ -152,4 +237,10 @@ export class CarrinhoComponent implements OnInit {
     if (!this.comanda) return 0;
     return this.comanda.itens.reduce((total, item) => total + item.quantidade, 0);
   }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 }

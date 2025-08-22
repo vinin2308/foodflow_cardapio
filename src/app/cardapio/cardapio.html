@@ -9,6 +9,19 @@
       </div>
     </div>
     
+    <!-- Código da Comanda -->
+<div class="comanda-info" *ngIf="comanda">
+  <span class="codigo-acesso">
+    <ng-container *ngIf="comanda.eh_principal; else comandaFilha">
+      Comanda principal • Código: <strong>{{ codigoAcesso }}</strong>
+    </ng-container>
+    <ng-template #comandaFilha>
+      Comanda vinculada • Código: <strong>{{ codigoAcesso }}</strong>
+    </ng-template>
+  </span>
+</div>
+
+
     <!-- Botão do Carrinho -->
     <button class="carrinho-btn" (click)="toggleCarrinho()" id="abrir-carrinho">
       🛒
@@ -32,50 +45,50 @@
 
   <!-- Lista de Itens -->
   <main class="cardapio-content">
-    <ng-container *ngFor="let categoria of categorias">
-      <section class="categoria-section" *ngIf="categoriaAtiva?.id === categoria.id">
-        <h2 class="categoria-titulo">
-          {{ categoria.icone }} {{ categoria.nome }}
-        </h2>
-        <div class="itens-grid">
-          <div 
-            class="item-card" 
-            *ngFor="let item of getItensPorCategoria(categoria)"
-            [attr.id]="'item-card-' + item.id"
-          >
-            <div class="item-info">
-              <h3 class="item-nome">{{ item.nome }}</h3>
-              <p class="item-descricao">{{ item.descricao }}</p>
-              <span class="item-preco">{{ formatarPreco(item.preco) }}</span>
-            </div>
-            <div class="item-actions">
-              <button 
-                class="btn-observacao" 
-                (click)="abrirModalObservacao(item)"
-                title="Adicionar observação"
-                [attr.id]="'adicionar-observacao-' + item.id"
-              >
-                ✏️
-              </button>
-              <button 
-                class="btn-adicionar" 
-                (click)="adicionarItem(item)"
-                [attr.id]="'adicionar-item-' + item.id"
-              >
-                + Adicionar
-              </button>
-            </div>
+    <div class="categoria-section" *ngIf="categoriaAtiva">
+      <h2 class="categoria-titulo">
+        {{ categoriaAtiva.icone }} {{ categoriaAtiva.nome }}
+      </h2>
+
+      <div class="itens-grid">
+        <div 
+          class="item-card" 
+          *ngFor="let item of getItensPorCategoria(categoriaAtiva)"
+        >
+          <div class="item-info">
+            <h3 class="item-nome">{{ item.nome }}</h3>
+            <p class="item-descricao">{{ item.descricao }}</p>
+            <span class="item-preco">{{ formatarPreco(item.preco) }}</span>
+          </div>
+
+          <div class="item-actions">
+            <button 
+              class="btn-observacao" 
+              (click)="abrirModalObservacao(item)"
+              title="Adicionar observação"
+              [attr.id]="'adicionar-observacao-' + item.id"
+            >
+              ✏️
+            </button>
+            <button 
+              class="btn-adicionar" 
+              (click)="adicionarItem(item)"
+              [attr.id]="'adicionar-item-' + item.id"
+            >
+              + Adicionar
+            </button>
           </div>
         </div>
-      </section>
-    </ng-container>
+      </div>
+    </div>
   </main>
 
   <!-- Componente do Carrinho -->
   <app-carrinho 
-  *ngIf="carrinhoAberto"
-  (fechar)="toggleCarrinho()"
-></app-carrinho>
+    *ngIf="carrinhoAberto"
+     
+    (fechar)="toggleCarrinho()"
+  ></app-carrinho>
 
   <!-- Modal de Observação -->
   <app-observacao-modal
@@ -85,4 +98,3 @@
     (cancelar)="fecharModalObservacao()"
   ></app-observacao-modal>
 </div>
-

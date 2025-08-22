@@ -16,16 +16,17 @@ import { Comanda } from '../models/carrinho.model';
 @Component({
   selector: 'app-cardapio',
   standalone: true,
-  imports: [CommonModule, CarrinhoComponent, ObservacaoModalComponent, HttpClientModule],
+  imports: [CommonModule, HttpClientModule, CarrinhoComponent, ObservacaoModalComponent],
   templateUrl: './cardapio.html',
   styleUrls: ['./cardapio.scss']
 })
 export class CardapioComponent implements OnInit, OnDestroy {
+  comanda: Comanda | null = null;
   private destroy$ = new Subject<void>();
-
   mesa = '';
   nomeCliente = '';
-  comanda: Comanda | null = null;
+  
+  codigoAcesso: string | null = null;
   carrinhoAberto = false;
 
   cardapio: ItemCardapio[] = [];
@@ -51,35 +52,40 @@ export class CardapioComponent implements OnInit, OnDestroy {
         this.mesa = params['mesa'] || '';
         this.nomeCliente = params['nome'] || '';
 
-        if (this.mesa) {
-          const mesaNum = Number(this.mesa);
-          const conectou = this.carrinhoService.conectarComanda(mesaNum);
-          if (!conectou) {
-            this.carrinhoService.iniciarComanda(mesaNum);
-          }
-        }
+      if (this.mesa) {
+        const mesaNum = Number(this.mesa);
+          if (!isNaN(mesaNum)) {
+            this.carrinhoService.inicializarComanda(mesaNum, this.nomeCliente);
+  }
+}
 
         this.carregarCategorias();
         this.carregarPratos();
       });
 
+    // Subscribes para comanda principal
     this.carrinhoService.comanda$
       .pipe(takeUntil(this.destroy$))
       .subscribe(comanda => {
         this.comanda = comanda;
+        this.codigoAcesso = comanda?.codigo_acesso || null;
 
-        if (comanda && comanda.itens) {
-          this.quantidadeTotalItens = comanda.itens.reduce((acc, item) => acc + item.quantidade, 0);
-        } else {
-          this.quantidadeTotalItens = 0;
-        }
+        this.quantidadeTotalItens = comanda?.itens.reduce((acc, item) => acc + item.quantidade, 0) || 0;
       });
 
+    // Subscribes para abertura do carrinho
     this.carrinhoService.carrinhoAberto$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(aberto => {
-        this.carrinhoAberto = aberto;
+      .subscribe(aberto => this.carrinhoAberto = aberto);
+
+    // Garante que sempre tenha código de acesso para a comanda
+    const comandaExistente = this.carrinhoService.comandaAtualValue;
+    if (comandaExistente && !comandaExistente.codigo_acesso) {
+      this.carrinhoService.gerarCodigoAcesso().subscribe(codigo => {
+        this.codigoAcesso = codigo;
+        localStorage.setItem('codigo-acesso', codigo);
       });
+    }
   }
 
   carregarPratos(): void {
@@ -88,7 +94,6 @@ export class CardapioComponent implements OnInit, OnDestroy {
       .subscribe(pratos => {
         this.cardapio = pratos;
 
-        // Extrair categorias únicas com base no ID
         const categoriasMap = new Map<string, CategoriaCardapio>();
         for (const prato of pratos) {
           if (prato.categoria && !categoriasMap.has(prato.categoria.id)) {
@@ -105,10 +110,7 @@ export class CardapioComponent implements OnInit, OnDestroy {
     this.categoriaService.listarCategorias()
       .pipe(takeUntil(this.destroy$))
       .subscribe(categorias => {
-        this.categorias = categorias.map(cat => ({
-          ...cat,
-          id: cat.id.toString()
-        }));
+        this.categorias = categorias.map(cat => ({ ...cat, id: cat.id.toString() }));
         this.categoriaAtiva = this.categorias.length > 0 ? this.categorias[0] : null;
       });
   }
@@ -122,7 +124,7 @@ export class CardapioComponent implements OnInit, OnDestroy {
   }
 
   adicionarItem(item: ItemCardapio): void {
-    this.carrinhoService.adicionarItem(item.id, 1);
+    this.carrinhoService.adicionarItem(item, 1);
   }
 
   abrirModalObservacao(item: ItemCardapio): void {
@@ -137,7 +139,7 @@ export class CardapioComponent implements OnInit, OnDestroy {
 
   adicionarItemComObservacao(observacao: string): void {
     if (this.itemSelecionadoParaObservacao) {
-      this.carrinhoService.adicionarItem(this.itemSelecionadoParaObservacao.id, 1, observacao);
+      this.carrinhoService.adicionarItem(this.itemSelecionadoParaObservacao, 1, observacao);
       this.fecharModalObservacao();
     }
   }
@@ -147,10 +149,7 @@ export class CardapioComponent implements OnInit, OnDestroy {
   }
 
   formatarPreco(preco: number): string {
-    return preco.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
+    return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
   ngOnDestroy(): void {

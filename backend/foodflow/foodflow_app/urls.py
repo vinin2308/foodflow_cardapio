@@ -8,6 +8,7 @@ from .views import (
     PedidoViewSet,
     PedidoItemViewSet,
     PagamentoViewSet,
+    iniciar_comanda
 )
 
 router = routers.DefaultRouter()
@@ -21,4 +22,5 @@ router.register(r'pagamentos', PagamentoViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('iniciar-comanda/', iniciar_comanda, name='iniciar-comanda'),
 ]
