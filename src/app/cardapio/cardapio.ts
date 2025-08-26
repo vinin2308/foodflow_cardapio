@@ -11,12 +11,12 @@ import { ObservacaoModalComponent } from '../cozinha/observacao-modal/observacao
 import { ItemCardapio, CategoriaCardapio } from '../models/item-cardapio.model';
 import { PratoService } from '../services/prato.service';
 import { CategoriaService } from '../services/categoria.service';
-import { Comanda } from '../models/carrinho.model';
-
+import { Comanda } from '../models/comanda.model';
+import { ComandaService } from '../services/comanda.service';
 @Component({
   selector: 'app-cardapio',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, CarrinhoComponent, ObservacaoModalComponent],
+  imports: [CommonModule, CarrinhoComponent, ObservacaoModalComponent],
   templateUrl: './cardapio.html',
   styleUrls: ['./cardapio.scss']
 })
@@ -28,6 +28,7 @@ export class CardapioComponent implements OnInit, OnDestroy {
   
   codigoAcesso: string | null = null;
   carrinhoAberto = false;
+  tipoComanda: 'principal' | 'vinculada' | null = null;
 
   cardapio: ItemCardapio[] = [];
   categorias: CategoriaCardapio[] = [];
@@ -43,50 +44,56 @@ export class CardapioComponent implements OnInit, OnDestroy {
     private carrinhoService: CarrinhoService,
     private pratoService: PratoService,
     private categoriaService: CategoriaService,
+    private comandaService: ComandaService
   ) {}
 
-  ngOnInit(): void {
-    this.route.queryParams
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
-        this.mesa = params['mesa'] || '';
-        this.nomeCliente = params['nome'] || '';
+ngOnInit(): void {
+  this.route.queryParams
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(params => {
+      this.mesa = params['mesa'] || '';
+      this.nomeCliente = params['nome'] || '';
+      const modoVinculado = params['principal'] === 'false';
 
-      if (this.mesa) {
-        const mesaNum = Number(this.mesa);
-          if (!isNaN(mesaNum)) {
-            this.carrinhoService.inicializarComanda(mesaNum, this.nomeCliente);
-  }
+      if (this.nomeCliente) {
+        localStorage.setItem('nome', this.nomeCliente);
+      }
+
+      const mesaNum = Number(this.mesa);
+      if (!isNaN(mesaNum)) {
+const comandaLocal = this.comandaService.restaurarComandaLocal(mesaNum, modoVinculado);
+
+// Ignora se houver código salvo desatualizado
+if (!comandaLocal || localStorage.getItem('codigo-acesso')) {
+  this.comandaService.inicializarComanda(mesaNum, this.nomeCliente, modoVinculado);
+} else {
+  this.comandaService.setComanda(comandaLocal);
 }
-
         this.carregarCategorias();
         this.carregarPratos();
-      });
+      }
+    });
 
-    // Subscribes para comanda principal
-    this.carrinhoService.comanda$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(comanda => {
-        this.comanda = comanda;
-        this.codigoAcesso = comanda?.codigo_acesso || null;
+  this.comandaService.comanda$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(comanda => {
+      this.comanda = comanda;
+      this.codigoAcesso = comanda?.codigo_acesso || null;
+      this.tipoComanda = comanda?.eh_principal ? 'principal' : 'vinculada';
 
-        this.quantidadeTotalItens = comanda?.itens.reduce((acc, item) => acc + item.quantidade, 0) || 0;
-      });
+      this.quantidadeTotalItens = Array.isArray(comanda?.itens)
+        ? comanda.itens.reduce((acc, item) => acc + item.quantidade, 0)
+        : 0;
 
-    // Subscribes para abertura do carrinho
-    this.carrinhoService.carrinhoAberto$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(aberto => this.carrinhoAberto = aberto);
+      if (this.codigoAcesso) {
+        localStorage.setItem('codigo-acesso', this.codigoAcesso);
+      }
+    });
 
-    // Garante que sempre tenha código de acesso para a comanda
-    const comandaExistente = this.carrinhoService.comandaAtualValue;
-    if (comandaExistente && !comandaExistente.codigo_acesso) {
-      this.carrinhoService.gerarCodigoAcesso().subscribe(codigo => {
-        this.codigoAcesso = codigo;
-        localStorage.setItem('codigo-acesso', codigo);
-      });
-    }
-  }
+  this.carrinhoService.carrinhoAberto$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(aberto => this.carrinhoAberto = aberto);
+}
 
   carregarPratos(): void {
     this.pratoService.listarPratos()
@@ -104,6 +111,7 @@ export class CardapioComponent implements OnInit, OnDestroy {
         this.categorias = Array.from(categoriasMap.values());
         this.categoriaAtiva = this.categorias[0] || null;
       });
+      
   }
 
   carregarCategorias(): void {
@@ -137,12 +145,13 @@ export class CardapioComponent implements OnInit, OnDestroy {
     this.itemSelecionadoParaObservacao = null;
   }
 
-  adicionarItemComObservacao(observacao: string): void {
-    if (this.itemSelecionadoParaObservacao) {
-      this.carrinhoService.adicionarItem(this.itemSelecionadoParaObservacao, 1, observacao);
-      this.fecharModalObservacao();
-    }
+adicionarItemComObservacao(observacao: string): void {
+  if (this.itemSelecionadoParaObservacao) {
+    this.carrinhoService.adicionarItem(this.itemSelecionadoParaObservacao, 1, observacao);
+    this.fecharModalObservacao();
   }
+}
+
 
   toggleCarrinho(): void {
     this.carrinhoService.toggleCarrinho();

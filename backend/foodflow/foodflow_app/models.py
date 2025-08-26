@@ -134,14 +134,18 @@ class Pedido(models.Model):
 
     # Código de acesso compartilhado entre comanda pai e filhas
     codigo_acesso = models.CharField(
-        max_length=6,
-        unique=True,
-        editable=False
-    )
+    max_length=6,
+    editable=False,
+    db_index=True  # ainda otimiza buscas
+)
 
     mesa = models.ForeignKey('Mesa', on_delete=models.PROTECT)
     nome_cliente = models.CharField(max_length=100, blank=True, null=True)
-    status = models.CharField(max_length=20, choices=[(s.value, s.label) for s in PedidoStatus], default=PedidoStatus.PENDENTE)
+    status = models.CharField(
+        max_length=20,
+        choices=[(s.value, s.label) for s in PedidoStatus],
+        default=PedidoStatus.PENDENTE
+    )
     tempo_estimado = models.IntegerField(null=True, blank=True)
     criado_por = models.ForeignKey('Usuario', on_delete=models.PROTECT, null=True, blank=True)
     ativo = models.BooleanField(default=True)
@@ -163,86 +167,33 @@ class Pedido(models.Model):
         return self.comanda_pai is None
 
     def clean(self):
-        # Impede que uma comanda filha seja pai de outra
         if self.comanda_pai and self.comanda_pai.comanda_pai:
             raise ValidationError("Uma comanda filha não pode ser pai de outra comanda.")
 
+        if not self.comanda_pai:
+        # Se for comanda principal, o código precisa ser único
+            if Pedido.objects.filter(codigo_acesso=self.codigo_acesso).exclude(pk=self.pk).exists():
+             raise ValidationError("Já existe uma comanda principal com esse código.")
+
+
     def save(self, *args, **kwargs):
-        # Validação de hierarquia
         self.full_clean()
 
-        # Herança de código de acesso
-        if self.comanda_pai:
-            self.codigo_acesso = self.comanda_pai.codigo_acesso
+        if self.pk:
+        # Se já existe, não altera o código
+         original = Pedido.objects.get(pk=self.pk)
+         self.codigo_acesso = original.codigo_acesso
         else:
-            if not self.codigo_acesso:
-                self.codigo_acesso = gerar_codigo_acesso_unico()
+            if self.comanda_pai:
+                self.codigo_acesso = self.comanda_pai.codigo_acesso
+            else:
+             self.codigo_acesso = gerar_codigo_acesso_unico()
 
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Pedido #{self.id} - Código: {self.codigo_acesso}"
-    id = models.BigAutoField(primary_key=True)
-
-    # Código de acesso compartilhado entre comanda pai e filhas
-    codigo_acesso = models.CharField(
-        max_length=6,
-        unique=True,
-        editable=False
-    )
-
-    mesa = models.ForeignKey('Mesa', on_delete=models.PROTECT)
-    nome_cliente = models.CharField(max_length=100, blank=True, null=True)
-    status = models.CharField(max_length=20, choices=[
-        ('pendente', 'Pendente'),
-        ('em_preparo', 'Em preparo'),
-        ('pronto', 'Pronto'),
-        ('entregue', 'Entregue'),
-        ('pago', 'Pago'),
-        ('cancelado', 'Cancelado'),
-    ], default='pendente')
-
-    tempo_estimado = models.IntegerField(null=True, blank=True)
-    criado_por = models.ForeignKey('Usuario', on_delete=models.PROTECT, null=True, blank=True)
-    ativo = models.BooleanField(default=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now=True)
-    data = models.DateTimeField(default=timezone.now)
-
-    # Comanda pai (somente um nível permitido)
-    comanda_pai = models.ForeignKey(
-        'self',
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name='comandas_filhas'
-    )
     
-    @property
-    def is_principal(self):
-        return self.pedido_pai is None
-
-    def clean(self):
-        # Impede que uma comanda filha seja pai de outra
-        if self.comanda_pai and self.comanda_pai.comanda_pai:
-            raise ValidationError("Uma comanda filha não pode ser pai de outra comanda.")
-
-    def save(self, *args, **kwargs):
-        # Validação de hierarquia
-        self.full_clean()
-
-        # Herança de código de acesso
-        if self.comanda_pai:
-            self.codigo_acesso = self.comanda_pai.codigo_acesso
-        else:
-            if not self.codigo_acesso:
-                self.codigo_acesso = gerar_codigo_acesso_unico()
-
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Pedido #{self.id} - Código: {self.codigo_acesso}"
-
 class PedidoUsuario(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)

@@ -1,13 +1,14 @@
 import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, takeUntil } from 'rxjs';
-
+import { HttpClientModule } from '@angular/common/http';
 import { CarrinhoService } from '../services/carrinho.service';
 import { WebSocketService } from '../services/websocket.service';
 import { PedidosRealtimeService } from '../services/pedidostemporeal.service';
 import { ItemCardapio } from '../models/item-cardapio.model';
-import { Comanda } from '../models/carrinho.model';
+import { Comanda } from '../models/comanda.model';
 import { Order } from '../models/ordel.model';
+import { ComandaService } from '../services/comanda.service';
 
 const statusValido = ['pendente', 'enviada', 'preparando', 'pronta'];
 
@@ -30,21 +31,20 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
   constructor(
     private carrinhoService: CarrinhoService,
     private wsService: WebSocketService,
-    private realtimeService: PedidosRealtimeService
+    private realtimeService: PedidosRealtimeService,
+    private comandaService: ComandaService
   ) {}
 
   ngOnInit() {
-    // Subscribes para atualizações de comanda
-    this.carrinhoService.comanda$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(comanda => {
-        this.comanda = comanda;
+this.comandaService.comanda$
+  .pipe(takeUntil(this.destroy$))
+  .subscribe(comanda => {
+    this.comanda = comanda;
+    if (comanda) {
+      this.wsService.conectar(comanda.codigo_acesso ?? String(comanda.mesa_numero));
+    }
+  });
 
-        // Conecta no WebSocket usando o código de acesso
-        if (comanda) {
-          this.wsService.conectar(comanda.codigo_acesso ?? String(comanda.mesa));
-        }
-      });
 
     // Subscribes para pratos do cardápio
     this.carrinhoService.pratosCardapio$
@@ -110,14 +110,12 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
 calcularTotal(): number {
   if (!this.comanda) return 0;
   return this.comanda.itens.reduce((total, item) => {
-    let preco = 0;
-    if (item.prato) {
-      const pratoInfo = this.getPratoPorId(item.prato);
-      preco = pratoInfo ? pratoInfo.preco : 0;
-    }
+    const pratoInfo = this.getPratoPorId(item.prato);
+    const preco = pratoInfo ? pratoInfo.preco : 0;
     return total + preco * item.quantidade;
   }, 0);
 }
+
 
 
   // =========================
@@ -167,15 +165,24 @@ calcularTotal(): number {
     }
   }
 
-  private atualizarComandaRealTime() {
-    if (!this.comanda) return;
+private atualizarComandaRealTime() {
+  if (!this.comanda) return;
 
-    // Atualiza no CarrinhoService
-    this.carrinhoService.atualizarComandas(this.comanda);
+  // 🔹 Atualiza localStorage
+  this.comandaService.setComanda(this.comanda);
 
-    // Envia para todos via WebSocket
-    this.wsService.enviarComandaAtualizada(this.comanda);
-  }
+  // 🔹 Atualiza backend e WebSocket
+  this.comandaService.atualizarComanda(this.comanda).subscribe({
+    next: (comandaAtualizada) => {
+      this.comanda = comandaAtualizada;
+      this.wsService.enviarComandaAtualizada(comandaAtualizada);
+    },
+    error: (err) => {
+      console.warn('Erro ao atualizar comanda no backend, mas localStorage foi salvo:', err);
+    }
+  });
+}
+
 
   // =========================
   // CONFIRMAR PEDIDO
@@ -198,7 +205,7 @@ calcularTotal(): number {
       this.confirmandoPedido = true;
 
       const payload = {
-        mesa: Number(this.comanda.mesa),
+        mesa: Number(this.comanda.mesa_numero),
         nome_cliente: this.comanda.nome_cliente,
         status: statusParaEnviar,
         itens: this.comanda.itens.map(item => ({
@@ -208,7 +215,7 @@ calcularTotal(): number {
         }))
       };
 
-      this.carrinhoService.confirmarPedidoNoCozinha().subscribe({
+      this.carrinhoService.confirmarPedidoNoCozinha(payload).subscribe({
         next: (pedidoCriado) => {
           this.confirmandoPedido = false;
 

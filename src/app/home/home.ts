@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CarrinhoService } from '../services/carrinho.service';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { ComandaService } from '../services/comanda.service';
+import { Comanda } from '../models/comanda.model';
+
 
 @Component({
   selector: 'app-home',
@@ -25,6 +28,7 @@ export class HomeComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private carrinhoService: CarrinhoService,
+    private Comandaservice: ComandaService,
     private http: HttpClient
   ) {}
 
@@ -43,8 +47,12 @@ export class HomeComponent implements OnInit {
 
   verificarPrimeiroAcesso() {
     if (this.mesa && this.mesa.trim() !== '') {
-      const comandaExistente = localStorage.getItem(`comanda-${this.mesa}`);
+      const chavePrincipal = `comanda-principal-mesa-${this.mesa}`;
+      const chaveVinculada = `comanda-vinculada-mesa-${this.mesa}`;
+
+      const comandaExistente = localStorage.getItem(chavePrincipal) || localStorage.getItem(chaveVinculada);
       this.isPrimeiroAcesso = !comandaExistente;
+
     } else {
       this.isPrimeiroAcesso = true;
     }
@@ -63,41 +71,69 @@ export class HomeComponent implements OnInit {
     localStorage.setItem('mesa-atual', this.mesa);
     localStorage.setItem('nome', this.nome);
 
-    this.carrinhoService.iniciarComandaPrincipal(mesaNumero);
-    this.salvarMesaAtiva();
+this.Comandaservice.criarComanda({ mesa: mesaNumero, nome_cliente: this.nome }).subscribe(comanda => {
+  localStorage.setItem(`comanda-principal-mesa-${mesaNumero}`, JSON.stringify(comanda));
+  localStorage.setItem(`tipo-comanda-mesa-${mesaNumero}-${comanda.codigo_acesso}`, 'principal');
+  localStorage.setItem('codigo-acesso', comanda.codigo_acesso || '');
+  this.Comandaservice.setComanda(comanda);
 
-    this.router.navigate(['/cardapio'], {
-      queryParams: {
-        mesa: this.mesa,
-        nome: this.nome,
-        pessoas: this.isPrimeiroAcesso ? this.numeroPessoas : undefined,
-        principal: true
-      }
-    });
+  this.router.navigate(['/cardapio'], {
+    queryParams: {
+      mesa: this.mesa,
+      nome: this.nome,
+      pessoas: this.isPrimeiroAcesso ? this.numeroPessoas : undefined,
+      principal: true
+    }
+  });
+});
+    this.salvarMesaAtiva();
   }
 
-  entrarPorCodigo() {
-  const mesaNumero = Number(this.mesa);
-  if (isNaN(mesaNumero)) {
-    alert('Número da mesa inválido.');
+entrarPorCodigo() {
+ this.Comandaservice.buscarPorCodigo(this.codigoAcesso.trim()).subscribe(comandas => {
+  if (!comandas || comandas.length === 0) {
+    alert('Código inválido ou comanda não encontrada.');
     return;
   }
 
-  this.isComandaPrincipal = false;
+  // Filtra a comanda principal
+  const comandaPrincipal = comandas.find(c => c.eh_principal);
 
+  if (!comandaPrincipal) {
+    alert('Nenhuma comanda principal encontrada com esse código.');
+    return;
+  }
+
+  const comandaCorrigida = this.Comandaservice.normalizarComanda(comandaPrincipal);
+
+  this.Comandaservice.criarComandaFilha(comandaCorrigida.id!, {
+    mesa: Number(this.mesa),
+    nome_cliente: this.nome
+  }).subscribe({
+    next: filha => this.finalizarEntrada(filha, Number(this.mesa)),
+    error: err => {
+      console.error('Erro ao criar comanda filha:', err);
+      alert('Não foi possível criar a comanda vinculada. Tente novamente.');
+    }
+  });
+});
+}
+
+private finalizarEntrada(comanda: Comanda, mesaNumero: number) {
+  this.isComandaPrincipal = comanda.eh_principal ?? false;
   localStorage.setItem('mesa-atual', String(mesaNumero));
   localStorage.setItem('nome', this.nome);
+  localStorage.setItem('codigo-acesso', comanda.codigo_acesso || '');
+  localStorage.setItem(`tipo-comanda-mesa-${mesaNumero}-${comanda.codigo_acesso}`, comanda.eh_principal ? 'principal' : 'vinculada');
 
-  // Cria comanda filha vinculada ao código informado
-  this.carrinhoService.iniciarComandaVinculada(mesaNumero, this.codigoAcesso);
-  this.salvarMesaAtiva();
+  this.Comandaservice.setComanda(comanda);
 
   this.router.navigate(['/cardapio'], {
     queryParams: {
       mesa: mesaNumero,
       nome: this.nome,
-      codigo: this.codigoAcesso,
-      principal: false
+      codigo: comanda.codigo_acesso,
+      principal: !!comanda.eh_principal
     }
   });
 }

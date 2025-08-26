@@ -333,4 +333,15 @@
   color: #856404;
   border-radius: 4px;
 }
+.codigo-acesso.principal {
+  background: var(--golden-yellow);
+  color: var(--wine-color);
+}
+
+.codigo-acesso.vinculada {
+  background: #fff3cd;
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+
 }

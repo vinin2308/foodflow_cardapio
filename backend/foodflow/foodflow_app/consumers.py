@@ -29,11 +29,14 @@ class ComandaConsumer(AsyncJsonWebsocketConsumer):
         # Envia para todos do grupo
         await self.channel_layer.group_send(
             self.group_name,
-            {
-                "type": "comanda_atualizada",
-                "data": content["comanda"]
-            }
-        )
+    {
+        "type": "comanda_atualizada",
+        "data": {
+            "tipo": "atualizacao_comanda",
+            "dados": content["comanda"]
+        }
+    }
+)
 
     # Envia a comanda atualizada para todos
     async def comanda_atualizada(self, event):

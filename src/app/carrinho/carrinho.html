@@ -8,7 +8,7 @@
 
     <!-- Informações da Mesa -->
     <div class="mesa-info" *ngIf="comanda">
-      <span class="mesa">Mesa {{ comanda.mesa }}</span>
+      <span class="mesa">Mesa {{ comanda.mesa_numero }}</span>
       <span class="status" [class]="comanda.status">{{ getStatusTexto(comanda.status) }}</span>
     </div>
 
