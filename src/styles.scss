@@ -1,142 +1,40 @@
-/* ---------------------------------------------------
-   🧾 Global Styles for FoodFlow App (Angular)
----------------------------------------------------- */
-
-/* Angular Material Theming */
-@use '@angular/material' as mat;
-
-html {
-  @include mat.theme((
-    color: (
-      primary: mat.$rose-palette,
-      tertiary: mat.$red-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
-}
-
-/* ---------------------------------------
-   🌈 Variables - FoodFlow Color Palette
----------------------------------------- */
+/* Variáveis de cores */
 :root {
-  --foodflow-wine: #722F37;
-  --foodflow-dark-red: #8B0000;
-  --foodflow-gold: #FFD700;
-  --foodflow-light-wine: #A0565E;
-  --foodflow-dark-wine: #5A252A;
-  --foodflow-cream: #FFF8DC;
-  --foodflow-white: #FFFFFF;
-  --foodflow-light-gray: #F8F9FA;
-  --foodflow-gray: #6C757D;
-  --foodflow-dark-gray: #343A40;
-  --foodflow-medium-gray: #CCCCCC;
-
-  // Gradients
-  --foodflow-gradient-primary: linear-gradient(135deg, var(--foodflow-wine) 0%, var(--foodflow-dark-red) 100%);
-  --foodflow-gradient-gold: linear-gradient(135deg, var(--foodflow-gold) 0%, #FFA500 100%);
-
-  // Shadows
-  --foodflow-shadow-sm: 0 2px 4px rgba(114, 47, 55, 0.1);
-  --foodflow-shadow-md: 0 4px 8px rgba(114, 47, 55, 0.15);
-  --foodflow-shadow-lg: 0 8px 16px rgba(114, 47, 55, 0.2);
+  --wine-color: #722F37;
+  --dark-red: #8B0000;
+  --golden-yellow: #FFD700;
+  --light-wine: #A0565E;
+  --dark-wine: #5A252A;
+  --cream: #FFF8DC;
+  --white: #FFFFFF;
+  --gray-light: #F5F5F5;
+  --gray-medium: #CCCCCC;
+  --gray-dark: #666666;
+  --shadow: rgba(114, 47, 55, 0.1);
 }
 
-/* ---------------------------------------
-   🧱 Reset & Global Layout
----------------------------------------- */
+/* Reset e configurações globais */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body {
-  height: 100%;
-}
-
 body {
-  margin: 0;
-  font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--foodflow-light-gray);
-  color: var(--foodflow-dark-gray);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #FDF8F0; /* Cor sólida creme suave que combina com a paleta */
+  color: var(--wine-color);
+  min-height: 100vh;
   line-height: 1.6;
-  color-scheme: light;
 }
 
-/* ---------------------------------------
-   🔠 Typography
----------------------------------------- */
+/* Tipografia */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  color: var(--foodflow-wine);
+  color: var(--wine-color);
 }
 
-/* ---------------------------------------
-   🎨 Utility Classes
----------------------------------------- */
-.text-wine       { color: var(--foodflow-wine) !important; }
-.text-dark-red   { color: var(--foodflow-dark-red) !important; }
-.text-gold       { color: var(--foodflow-gold) !important; }
-.text-cream      { color: var(--foodflow-cream) !important; }
-.text-white      { color: var(--foodflow-white) !important; }
-
-.bg-wine         { background-color: var(--foodflow-wine) !important; }
-.bg-dark-red     { background-color: var(--foodflow-dark-red) !important; }
-.bg-gold         { background-color: var(--foodflow-gold) !important; }
-.bg-cream        { background-color: var(--foodflow-cream) !important; }
-.bg-white        { background-color: var(--foodflow-white) !important; }
-
-.gradient-primary { background: var(--foodflow-gradient-primary) !important; }
-.gradient-gold    { background: var(--foodflow-gradient-gold) !important; }
-
-.shadow-sm       { box-shadow: var(--foodflow-shadow-sm) !important; }
-.shadow-md       { box-shadow: var(--foodflow-shadow-md) !important; }
-.shadow-lg       { box-shadow: var(--foodflow-shadow-lg) !important; }
-
-/* ---------------------------------------
-   🧼 Forms & Inputs
----------------------------------------- */
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label,
-label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: var(--foodflow-dark-gray);
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.form-control,
-.form-input {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #E9ECEF;
-  border-radius: 8px;
-  font-size: 16px;
-  background: var(--foodflow-white);
-  color: var(--foodflow-wine);
-  transition: all 0.3s ease;
-
-  &::placeholder {
-    color: var(--foodflow-gray);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--foodflow-wine);
-    box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
-  }
-}
-
-/* ---------------------------------------
-   🔘 Buttons
----------------------------------------- */
+/* Botões globais */
 .btn {
   padding: 12px 24px;
   border: none;
@@ -149,150 +47,126 @@ label {
   letter-spacing: 0.5px;
   position: relative;
   overflow: hidden;
+}
 
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-  }
+.btn:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
 
-  &:hover:before {
-    left: 100%;
-  }
+.btn:hover:before {
+  left: 100%;
 }
 
 .btn-primary {
-  background: var(--foodflow-gradient-primary);
-  color: var(--foodflow-white);
-  box-shadow: var(--foodflow-shadow-sm);
+  background: linear-gradient(135deg, var(--wine-color) 0%, var(--dark-red) 100%);
+  color: var(--white);
+  box-shadow: 0 4px 15px var(--shadow);
+}
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--foodflow-shadow-md);
-  }
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--shadow);
+}
 
-  &:disabled {
-    background: var(--foodflow-medium-gray);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
+.btn-primary:disabled {
+  background: var(--gray-medium);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {
-  background: var(--foodflow-white);
-  color: var(--foodflow-wine);
-  border: 2px solid var(--foodflow-wine);
-
-  &:hover {
-    background: var(--foodflow-wine);
-    color: var(--foodflow-white);
-  }
-
-  &:disabled {
-    background: var(--foodflow-medium-gray);
-    color: var(--foodflow-gray);
-    cursor: not-allowed;
-  }
+  background: linear-gradient(135deg, var(--golden-yellow) 0%, #FFA500 100%);
+  color: var(--wine-color);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
 }
 
-.btn-gold {
-  background: var(--foodflow-gradient-gold);
-  color: var(--foodflow-dark-gray);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--foodflow-shadow-md);
-  }
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
 }
 
-/* ---------------------------------------
-   📦 Cards
----------------------------------------- */
-.card {
-  background: var(--foodflow-white);
-  border-radius: 12px;
-  box-shadow: var(--foodflow-shadow-sm);
-  padding: 24px;
+.btn-secondary:disabled {
+  background: var(--gray-medium);
+  color: var(--gray-dark);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Inputs globais */
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--gray-medium);
+  border-radius: 8px;
+  font-size: 16px;
   transition: all 0.3s ease;
-
-  &:hover {
-    box-shadow: var(--foodflow-shadow-md);
-  }
+  background: var(--white);
+  color: var(--wine-color);
 }
 
-/* ---------------------------------------
-   🎞️ Animations
----------------------------------------- */
+.form-input:focus {
+  outline: none;
+  border-color: var(--wine-color);
+  box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
+}
+
+.form-input::placeholder {
+  color: var(--gray-dark);
+}
+
+/* Labels */
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--wine-color);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Animações */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulse {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes bounceIn {
-  0%   { opacity: 0; transform: scale(0.3); }
-  50%  { opacity: 1; transform: scale(1.05); }
-  70%  { transform: scale(0.9); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-.fade-in       { animation: fadeIn 0.5s ease-in; }
-.slide-in-left { animation: slideInLeft 0.5s ease-out; }
-.bounce-in     { animation: bounceIn 0.6s ease-out; }
-
-/* ---------------------------------------
-   🖱️ Scrollbar
----------------------------------------- */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--foodflow-light-gray);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--foodflow-wine);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--foodflow-dark-red);
-}
-
-/* ---------------------------------------
-   📱 Responsividade
----------------------------------------- */
+/* Responsividade */
 @media (max-width: 768px) {
   .btn {
     padding: 14px 20px;
     font-size: 14px;
   }
-
-  .form-input,
-  .form-control {
+  
+  .form-input {
     padding: 14px 16px;
-    font-size: 16px; // evita zoom no iOS
+    font-size: 16px; /* Evita zoom no iOS */
   }
 }

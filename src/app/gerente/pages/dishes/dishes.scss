@@ -1,3 +1,201 @@
+// ======== GLOBAL STYLES (adicionados aqui) ========
+
+// Include theming for Angular Material with `mat.theme()`.
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$rose-palette,
+      tertiary: mat.$red-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+// FoodFlow Custom Color Palette
+:root {
+  --foodflow-wine: #722F37;
+  --foodflow-dark-red: #8B0000;
+  --foodflow-gold: #FFD700;
+  --foodflow-cream: #F5F5DC;
+  --foodflow-white: #FFFFFF;
+  --foodflow-light-gray: #F8F9FA;
+  --foodflow-gray: #6C757D;
+  --foodflow-dark-gray: #343A40;
+  
+  // Gradients
+  --foodflow-gradient-primary: linear-gradient(135deg, var(--foodflow-wine) 0%, var(--foodflow-dark-red) 100%);
+  --foodflow-gradient-gold: linear-gradient(135deg, var(--foodflow-gold) 0%, #FFA500 100%);
+  
+  // Shadows
+  --foodflow-shadow-sm: 0 2px 4px rgba(114, 47, 55, 0.1);
+  --foodflow-shadow-md: 0 4px 8px rgba(114, 47, 55, 0.15);
+  --foodflow-shadow-lg: 0 8px 16px rgba(114, 47, 55, 0.2);
+}
+
+body {
+  color-scheme: light;
+  background-color: var(--foodflow-light-gray);
+  color: var(--foodflow-dark-gray);
+  font: var(--mat-sys-body-medium);
+  margin: 0;
+}
+
+html, body { height: 100%; }
+
+body { 
+  margin: 0; 
+  font-family: 'Roboto', "Helvetica Neue", sans-serif; 
+}
+
+* { box-sizing: border-box; }
+
+// Custom scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--foodflow-light-gray);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--foodflow-wine);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foodflow-dark-red);
+}
+
+// Utility classes
+.text-wine { color: var(--foodflow-wine) !important; }
+.text-dark-red { color: var(--foodflow-dark-red) !important; }
+.text-gold { color: var(--foodflow-gold) !important; }
+.text-cream { color: var(--foodflow-cream) !important; }
+.text-white { color: var(--foodflow-white) !important; }
+
+.bg-wine { background-color: var(--foodflow-wine) !important; }
+.bg-dark-red { background-color: var(--foodflow-dark-red) !important; }
+.bg-gold { background-color: var(--foodflow-gold) !important; }
+.bg-cream { background-color: var(--foodflow-cream) !important; }
+.bg-white { background-color: var(--foodflow-white) !important; }
+
+.gradient-primary { background: var(--foodflow-gradient-primary) !important; }
+.gradient-gold { background: var(--foodflow-gradient-gold) !important; }
+
+.shadow-sm { box-shadow: var(--foodflow-shadow-sm) !important; }
+.shadow-md { box-shadow: var(--foodflow-shadow-md) !important; }
+.shadow-lg { box-shadow: var(--foodflow-shadow-lg) !important; }
+
+// Button styles
+.btn-primary {
+  background: var(--foodflow-gradient-primary);
+  color: var(--foodflow-white);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--foodflow-shadow-md);
+  }
+}
+.btn-secondary {
+  background: var(--foodflow-white);
+  color: var(--foodflow-wine);
+  border: 2px solid var(--foodflow-wine);
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  &:hover {
+    background: var(--foodflow-wine);
+    color: var(--foodflow-white);
+  }
+}
+.btn-gold {
+  background: var(--foodflow-gradient-gold);
+  color: var(--foodflow-dark-gray);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--foodflow-shadow-md);
+  }
+}
+
+// Card styles
+.card {
+  background: var(--foodflow-white);
+  border-radius: 12px;
+  box-shadow: var(--foodflow-shadow-sm);
+  padding: 24px;
+  transition: all 0.3s ease;
+  &:hover {
+    box-shadow: var(--foodflow-shadow-md);
+  }
+}
+
+// Form styles
+.form-group { margin-bottom: 20px; }
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--foodflow-dark-gray);
+  font-weight: 500;
+}
+.form-control {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #E9ECEF;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  &:focus {
+    outline: none;
+    border-color: var(--foodflow-wine);
+    box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1);
+  }
+}
+
+// Animations
+.fade-in { animation: fadeIn 0.5s ease-in; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.slide-in-left { animation: slideInLeft 0.5s ease-out; }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.bounce-in { animation: bounceIn 0.6s ease-out; }
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+// ======== FIM DO GLOBAL ========
+
+
+// ======== SEUS ESTILOS DE DISHES AQUI ========
+// (todo o código do segundo arquivo que você mandou continua igual)
+.dishes-container {
+  min-height: 100vh;
+  background: var(--foodflow-light-gray);
+}
+
+// (restante do seu código permanece inalterado)
+
 .dishes-container {
   min-height: 100vh;
   background: var(--foodflow-light-gray);
