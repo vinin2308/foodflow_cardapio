@@ -35,11 +35,12 @@ class PratoSerializer(serializers.ModelSerializer):
 # ----------------------------
 
 class PedidoItemSerializer(serializers.ModelSerializer):
-    prato_nome = serializers.SerializerMethodField()
+    prato_nome = serializers.CharField(source="prato.nome", read_only=True)
+    prato = serializers.PrimaryKeyRelatedField(read_only=True)  # adiciona o ID do prato também
 
     class Meta:
         model = PedidoItem
-        fields = ['prato_nome', 'quantidade', 'observacao']
+        fields = ['id', 'prato', 'prato_nome', 'quantidade', 'observacao']
 
     def get_prato_nome(self, obj):
         return obj.prato.nome if obj.prato else None
@@ -55,9 +56,8 @@ class PedidoItemWriteSerializer(serializers.ModelSerializer):
 # ----------------------------
 # PEDIDO
 # ----------------------------
-
 class PedidoReadSerializer(serializers.ModelSerializer):
-    itens = PedidoItemSerializer(many=True, read_only=True)
+    itens = serializers.SerializerMethodField()  # Mudança aqui
     mesa_numero = serializers.SerializerMethodField()
     comanda_pai_id = serializers.SerializerMethodField()
     eh_principal = serializers.SerializerMethodField()
@@ -73,6 +73,12 @@ class PedidoReadSerializer(serializers.ModelSerializer):
             'eh_principal'
         ]
         read_only_fields = ['codigo_acesso']
+
+    def get_itens(self, obj):
+        # Força a avaliação da QuerySet antes de serializar
+        itens_queryset = obj.itens.all()
+        return PedidoItemSerializer(itens_queryset, many=True).data
+
     def get_mesa_numero(self, obj):
         return obj.mesa.numero if obj.mesa else None
 
@@ -85,9 +91,7 @@ class PedidoReadSerializer(serializers.ModelSerializer):
 
 class PedidoWriteSerializer(serializers.ModelSerializer):
     codigo_acesso = serializers.CharField(required=False, allow_blank=True)
-    itens = serializers.ListField(
-        child=serializers.DictField(), required=False
-    )
+    itens = PedidoItemWriteSerializer(many=True, required=False)
     comanda_pai = serializers.PrimaryKeyRelatedField(
         queryset=Pedido.objects.all(),
         required=False,
@@ -97,24 +101,40 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = ['mesa', 'nome_cliente', 'status', 'tempo_estimado', 'itens', 'comanda_pai', 'codigo_acesso']
+        extra_kwargs = {
+            'mesa': {'required': False}
+        }
 
     def validate(self, data):
         codigo = data.get('codigo_acesso')
         comanda_pai = data.get('comanda_pai')
 
+        # Validação do código de acesso
         if comanda_pai:
             if codigo and codigo != comanda_pai.codigo_acesso:
                 raise serializers.ValidationError("Comanda filha deve usar o mesmo código da comanda pai.")
         else:
-            pedido_id = self.instance.id if self.instance else None
-            if codigo and Pedido.objects.filter(codigo_acesso=codigo).exclude(id=pedido_id).exists():
-                raise serializers.ValidationError("Já existe uma comanda principal com esse código.")
+            pedido_id = getattr(self.instance, "id", None)
+            if codigo:
+                if Pedido.objects.filter(codigo_acesso=codigo, comanda_pai__isnull=True).exclude(id=pedido_id).exists():
+                    raise serializers.ValidationError("Já existe uma comanda principal com esse código.")
+
+
+
+        # Validação dos itens
+        itens = data.get('itens', [])
+        for item in itens:
+            if 'prato' not in item or 'quantidade' not in item:
+                raise serializers.ValidationError("Cada item deve ter 'prato' e 'quantidade'.")
+            if not isinstance(item['quantidade'], int) or item['quantidade'] <= 0:
+                raise serializers.ValidationError("Quantidade deve ser um número inteiro maior que zero.")
+
         return data
 
     def create(self, validated_data):
         itens_data = validated_data.pop('itens', [])
         request_user = self.context.get('request').user if self.context.get('request') else None
-        usuario = request_user if isinstance(request_user, Usuario) else None
+        usuario = request_user if request_user and request_user.is_authenticated else None
         validated_data['criado_por'] = usuario
 
         # Gerar ou herdar código de acesso
@@ -128,7 +148,11 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
             pedido = Pedido.objects.create(**validated_data)
 
             for item in itens_data:
-                prato_obj = Prato.objects.get(id=item['prato'])
+                try:
+                    prato_obj = Prato.objects.get(id=item['prato'])
+                except Prato.DoesNotExist:
+                    raise serializers.ValidationError(f"Prato com ID {item['prato']} não encontrado.")
+
                 PedidoItem.objects.create(
                     pedido=pedido,
                     prato=prato_obj,
@@ -146,7 +170,7 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
                     'id': pedido.id,
                     'codigo_acesso': pedido.codigo_acesso,
                     'nome_cliente': pedido.nome_cliente,
-                    'mesa': pedido.mesa.numero,
+                    'mesa': getattr(pedido.mesa, 'numero', None),
                     'status': pedido.status,
                     'itens': [
                         {
@@ -164,29 +188,31 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         itens_data = validated_data.pop('itens', None)
-        request_user = self.context.get('request').user if self.context.get('request') else None
-        usuario = request_user if isinstance(request_user, Usuario) else None
+        usuario = self.context.get('request').user if self.context.get('request') else None
+        usuario = usuario if usuario and usuario.is_authenticated else None
 
-        instance.status = validated_data.get('status', instance.status)
-        instance.tempo_estimado = validated_data.get('tempo_estimado', instance.tempo_estimado)
-        instance.nome_cliente = validated_data.get('nome_cliente', instance.nome_cliente)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
 
         if itens_data is not None:
-            # Remove itens antigos e recria
             instance.itens.all().delete()
             for item in itens_data:
-                prato_obj = Prato.objects.get(id=item['prato'])
                 PedidoItem.objects.create(
                     pedido=instance,
-                    prato=prato_obj,
+                    prato=item['prato'],
                     usuario=usuario,
                     quantidade=item['quantidade'],
                     observacao=item.get('observacao', ''),
-                    preco_unitario=prato_obj.preco
+                    preco_unitario=item['prato'].preco
                 )
 
         return instance
+
+
+    
+
+
 
 # ----------------------------
 # PAGAMENTO

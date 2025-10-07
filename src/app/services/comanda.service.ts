@@ -144,28 +144,9 @@ criarComandaFilha(idPai: number, payload: { mesa: number; nome_cliente: string }
 }
 
 
-atualizarComanda(comanda: Comanda): Observable<Comanda> {
-const payload: any = {
-  mesa: Number(comanda.mesa_numero),
-  nome_cliente: comanda.nome_cliente,
-  status: comanda.status,
-  tempo_estimado: comanda.tempo_estimado ?? null,
-  itens: comanda.itens.map(i => ({
-    prato: i.prato,
-    quantidade: i.quantidade,
-    observacao: i.observacao || ''
-  })),
-  comanda_pai: !comanda.eh_principal ? (comanda as ComandaFilha).comanda_pai_id : null
-};
-
-// só envia código_acesso se for comanda principal
-if (comanda.eh_principal) {
-  payload.codigo_acesso = comanda.codigo_acesso;
-}
-
-
-  return this.http.put<Comanda>(
-    `${this.apiUrl}/pedidos/${comanda.id}/`,
+atualizarComandaParcial(id: number, payload: Partial<Comanda>): Observable<Comanda> {
+  return this.http.patch<Comanda>(
+    `${this.apiUrl}/pedidos/${id}/`,
     payload
   ).pipe(
     tap((comandaAtualizada) => {
@@ -173,6 +154,7 @@ if (comanda.eh_principal) {
     })
   );
 }
+
 restaurarComandaLocal(mesa: number, modoVinculado = false): Comanda | null {
   const chave = modoVinculado
     ? `comanda-vinculada-${mesa}`
@@ -189,4 +171,25 @@ restaurarComandaLocal(mesa: number, modoVinculado = false): Comanda | null {
     return null;
   }
 }
+atualizarComanda(comanda: Comanda): Observable<Comanda> {
+  console.log('Comanda recebida para atualização:', comanda);
+  if (!comanda.id) {
+    throw new Error('Comanda sem ID não pode ser atualizada');
+  }
+
+const payload = {
+  nome_cliente: comanda.nome_cliente ?? '',
+  status: comanda.status ?? 'pendente',
+  itens: Array.isArray(comanda.itens)
+    ? comanda.itens.map(item => ({
+        prato: Number(item.prato),
+        quantidade: Number(item.quantidade),
+        observacao: item.observacao || ''
+      }))
+    : []
+};
+  console.log('Payload de itens enviado para atualizarComanda:', payload);
+  return this.atualizarComandaParcial(comanda.id, payload);
+}
+
 }

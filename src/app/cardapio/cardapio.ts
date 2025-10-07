@@ -131,9 +131,19 @@ if (!comandaLocal || localStorage.getItem('codigo-acesso')) {
     this.categoriaAtiva = categoria;
   }
 
-  adicionarItem(item: ItemCardapio): void {
-    this.carrinhoService.adicionarItem(item, 1);
+adicionarItem(item: ItemCardapio): void {
+  const observacao = ''; // sem observação aqui, apenas adiciona normal
+  const quantidade = 1;
+
+  // Inicializa a comanda se ainda não existir
+  if (!this.comandaService.comandaAtualValue) {
+    this.comandaService.inicializarComanda(Number(this.mesa), this.nomeCliente);
   }
+
+  // Adiciona item ao carrinho
+  this.carrinhoService.adicionarItem(item, quantidade, observacao);
+}
+
 
   abrirModalObservacao(item: ItemCardapio): void {
     this.itemSelecionadoParaObservacao = item;
@@ -151,6 +161,8 @@ adicionarItemComObservacao(observacao: string): void {
     this.fecharModalObservacao();
   }
 }
+
+
 
 
   toggleCarrinho(): void {

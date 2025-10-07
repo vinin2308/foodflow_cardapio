@@ -6,6 +6,9 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+
 
 from .models import (
     Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento,
@@ -131,22 +134,44 @@ class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.all()
     permission_classes = [AllowAny]
 
+    def retrieve(self, request, *args, **kwargs):
+        pedido = self.get_object()
+        pedidos_relacionados = Pedido.objects.filter(codigo_acesso=pedido.codigo_acesso)
+
+        serializer = PedidoReadSerializer(pedidos_relacionados, many=True)
+        return Response(serializer.data)
+
+
+    def partial_update(self, request, *args, **kwargs):
+        super().partial_update(request, *args, **kwargs)
+        pedido = self.get_object()
+        read_serializer = PedidoReadSerializer(pedido)
+        return Response(read_serializer.data)
+    
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        pedido = self.get_object()
+        read_serializer = PedidoReadSerializer(pedido)
+        return Response(read_serializer.data)
+
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update', 'adicionar_filha']:
+        if self.action in ['create', 'update', 'partial_update', 'adicionar_filha', 'cozinha']:
             return PedidoWriteSerializer
         return PedidoReadSerializer
 
     def get_serializer_context(self):
         return {**super().get_serializer_context(), "request": self.request}
 
-    # 🍳 Criar ou listar pedidos na cozinha
+    # ----------------- Ações customizadas -----------------
+
     @action(detail=False, methods=['get', 'post'])
     def cozinha(self, request):
         status_param = request.GET.get('status')
         pedidos = Pedido.objects.all() if not status_param else Pedido.objects.filter(status=status_param)
 
         if request.method == 'GET':
-            return Response(self.get_serializer(pedidos, many=True).data)
+            serializer = self.get_serializer(pedidos, many=True)
+            return Response(serializer.data)
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -154,7 +179,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
         emitir_pedido_websocket(pedido)
         return Response(PedidoReadSerializer(pedido).data, status=status.HTTP_201_CREATED)
 
-    # ✅ Finalizar pedido (marcar como PRONTO)
     @action(detail=True, methods=['post'])
     def finalizar(self, request, pk=None):
         pedido = self.get_object()
@@ -163,7 +187,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
         emitir_pedido_websocket(pedido)
         return Response(PedidoReadSerializer(pedido).data)
 
-    # 🔑 Entrar em uma comanda pelo código
     @action(detail=False, methods=['post'])
     def entrar_comanda(self, request):
         codigo = request.data.get('codigo_acesso')
@@ -180,7 +203,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
         return Response(PedidoReadSerializer(pedido).data)
 
-    # 📦 Listar todos os pedidos com o mesmo código (pai + filhas)
     @action(detail=False, methods=['get'])
     def pedidos_por_codigo(self, request):
         codigo = request.query_params.get('codigo_acesso')
@@ -188,50 +210,67 @@ class PedidoViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Código de acesso é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
         pedidos = Pedido.objects.filter(codigo_acesso=codigo)
-        return Response(PedidoReadSerializer(pedidos, many=True).data)
+        serializer = PedidoReadSerializer(pedidos, many=True)
+        return Response(serializer.data)
 
-
-    # ➕ Criar comanda filha
     @action(detail=True, methods=['post'])
     def adicionar_filha(self, request, pk=None):
-        comanda_pai = self.get_object()
+        comanda_pai = get_object_or_404(Pedido, pk=pk)
+
         data = request.data.copy()
         data['comanda_pai'] = comanda_pai.id
-        serializer = PedidoWriteSerializer(data=data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        pedido_filho = serializer.save()
-        emitir_pedido_websocket(pedido_filho)
-        return Response(PedidoReadSerializer(pedido_filho).data, status=status.HTTP_201_CREATED)
+        data['mesa'] = comanda_pai.mesa.id if comanda_pai.mesa else None
+        data['codigo_acesso'] = comanda_pai.codigo_acesso
 
-    # 📜 Listar filhas de uma comanda
+        serializer = PedidoWriteSerializer(data=data, context={'request': request})
+
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            pedido_filho = serializer.save()
+
+        # Após criar, retorna todos os pedidos da mesma comanda
+        pedidos_relacionados = Pedido.objects.filter(codigo_acesso=comanda_pai.codigo_acesso)
+        read_serializer = PedidoReadSerializer(pedidos_relacionados, many=True)
+
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+    def list(self, request, *args, **kwargs):
+        codigo = request.query_params.get('codigo_acesso')
+        if codigo:
+            pedidos = Pedido.objects.filter(codigo_acesso=codigo)
+        else:
+            pedidos = Pedido.objects.all()
+
+        serializer = PedidoReadSerializer(pedidos, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['get'])
     def listar_filhas(self, request, pk=None):
         comanda_pai = self.get_object()
-        filhas = comanda_pai.comandas_filhas.all()
-        return Response(PedidoReadSerializer(filhas, many=True).data)
+        filhas_qs = comanda_pai.comandas_filhas.all()  #  .all() obrigatório
+        serializer = PedidoReadSerializer(filhas_qs, many=True)
+        return Response(serializer.data)
 
-    # 🗑️ Deletar pedido
-    def destroy(self, request, *args, **kwargs):
-        pedido = self.get_object()
-        pedido.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-    
-    # 📊 Agrupar comandas por código de acesso
     @action(detail=False, methods=['get'], url_path='por-codigo')
     def por_codigo(self, request):
         codigo = request.query_params.get('codigo_acesso')
         if not codigo:
-          return Response({'erro': 'Código de acesso é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'erro': 'Código de acesso é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
         principal = Pedido.objects.filter(codigo_acesso=codigo, comanda_pai__isnull=True).first()
-        filhas = Pedido.objects.filter(codigo_acesso=codigo, comanda_pai__isnull=False)
+        filhas_qs = Pedido.objects.filter(codigo_acesso=codigo, comanda_pai__isnull=False)
 
         principal_data = PedidoReadSerializer(principal).data if principal else None
-        filhas_data = PedidoReadSerializer(filhas, many=True).data
+        filhas_data = PedidoReadSerializer(filhas_qs, many=True).data
 
         return Response({
-             "codigo_acesso": codigo,
-             "total_comandas": (1 if principal else 0) + filhas.count(),
-             "principal": principal_data,
-             "filhas": filhas_data
-    })
+            "codigo_acesso": codigo,
+            "total_comandas": (1 if principal else 0) + filhas_qs.count(),
+            "principal": principal_data,
+            "filhas": filhas_data
+        })
+
+    def destroy(self, _request, *_, **__):
+        pedido = self.get_object()
+        pedido.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
