@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ItemCardapio } from '../models/item-cardapio.model';
-
+import { environment } from '../../enviroments/enviroment';
 @Injectable({
   providedIn: 'root'
 })
+
 export class PratoService {
-  private apiUrl = 'http://localhost:8000/api/pratos/'; 
+  private apiUrl = environment.apiUrl + '/pratos/';
 
   constructor(private http: HttpClient) {}
 

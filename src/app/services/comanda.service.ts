@@ -3,13 +3,13 @@ import { BehaviorSubject, Observable, of} from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Comanda, ComandaBase, ComandaFilha } from '../models/comanda.model';
 import { catchError, tap } from 'rxjs/operators';
-
+import{environment} from '../../enviroments/enviroment'
 
 @Injectable({ providedIn: 'root' })
 export class ComandaService {
   private comandaSubject = new BehaviorSubject<Comanda | null>(null);
   private comandaAtual?: Comanda;
-  private readonly apiUrl = 'http://localhost:8000/api';
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

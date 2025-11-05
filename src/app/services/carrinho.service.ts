@@ -6,12 +6,12 @@ import { ComandaService } from './comanda.service';
 import { WebSocketService } from './websocket.service';
 import { PedidoPayload } from '../models/pedidos.model';
 import { Comanda } from '../models/comanda.model';
-
+import { environment } from '../../enviroments/enviroment';
 @Injectable({ providedIn: 'root' })
 export class CarrinhoService {
   private pratosCardapioSubject = new BehaviorSubject<ItemCardapio[]>([]);
   private carrinhoAbertoSubject = new BehaviorSubject<boolean>(false);
-  private readonly apiUrl = 'http://localhost:8000/api/pedidos/';
+  private readonly apiUrl = environment.apiUrl + '/pedidos/';
 
   constructor(
     private http: HttpClient,

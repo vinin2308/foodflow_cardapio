@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import { ComandaService } from './comanda.service';
 import { Comanda, ItemComanda } from '../models/comanda.model';
+import { environment } from '../../enviroments/enviroment'; 
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
@@ -21,7 +22,7 @@ export class WebSocketService {
     this.codigoComanda = codigoComanda;
     this.erroCallback = onErro;
 
-    this.socket = new WebSocket(`ws://localhost:8000/ws/comanda/${codigoComanda}/`);
+    this.socket = new WebSocket(`${environment.wsUrl}/comanda/${codigoComanda}/`);
 
     this.socket.onopen = () => {
       this.log('WebSocket conectado');

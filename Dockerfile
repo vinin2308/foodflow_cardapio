@@ -1,4 +1,3 @@
-# Stage 1: Build the Angular application
 FROM node:20-alpine as builder
 
 WORKDIR /app
@@ -12,7 +11,7 @@ RUN npm install
 COPY . .
 RUN npm run build --configuration foodflow
 
-# Stage 2: Serve the application with Nginx
+
 FROM nginx:alpine
 
 COPY --from=builder /app/dist/foodflow/browser /usr/share/nginx/html
