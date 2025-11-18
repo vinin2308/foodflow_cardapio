@@ -1,0 +1,104 @@
+<div class="foodflow-container">
+  
+  <header class="top-bar">
+    <div class="logo">
+      <span class="icon">🌸</span> <h1>FoodFlow <small>Garçom</small></h1>
+    </div>
+    
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        placeholder="Buscar mesa..." 
+        [(ngModel)]="termoBusca" 
+        (input)="atualizarLista()">
+    </div>
+  </header>
+
+  <div class="actions-bar">
+    <div class="filters">
+      <button [class.active]="filtroStatus === 'todos'" (click)="filtrarPor('todos')">Todos</button>
+      <button [class.active]="filtroStatus === 'pendente'" (click)="filtrarPor('pendente')">Pendentes</button>
+      <button [class.active]="filtroStatus === 'efetuado'" (click)="filtrarPor('efetuado')">Efetuados</button>
+    </div>
+    <button class="btn-new">➕ Nova comanda</button>
+  </div>
+
+  <div class="mesas-grid">
+    <div *ngFor="let mesa of mesasFiltradas" class="mesa-card" (click)="abrirDetalhes(mesa)">
+      
+      <div class="card-header" [ngClass]="getStatusClass(mesa.status)">
+        <span class="status-text">{{ getStatusLabel(mesa.status) }}</span>
+      </div>
+      
+      <div class="card-body">
+        <div class="mesa-info">
+          <h2>Mesa {{ mesa.numero }}</h2>
+          <span class="garcom-name" *ngIf="mesa.garcom !== '-'">Garçom: {{ mesa.garcom }}</span>
+        </div>
+        
+        <div class="mesa-valor">
+          <small>Total</small>
+          <strong>R$ {{ mesa.valorTotal | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <button class="btn-ver">👁️ Ver comanda</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" *ngIf="mesaSelecionada" (click)="fecharDetalhes()">
+    <div class="drawer" (click)="$event.stopPropagation()">
+      
+      <div class="drawer-header">
+        <button class="btn-back" (click)="fecharDetalhes()">← Voltar</button>
+        <h3>Mesa {{ mesaSelecionada.numero }} - {{ getStatusLabel(mesaSelecionada.status) }}</h3>
+        <div class="meta-info">
+          <span>Comanda #{{ mesaSelecionada.id }}</span>
+          <span>{{ mesaSelecionada.tempo }}</span>
+        </div>
+      </div>
+
+      <div class="drawer-content">
+        <div class="item-row" *ngFor="let item of mesaSelecionada.itens">
+          <div class="item-desc">
+            <span class="qtd">{{ item.quantidade }}x</span>
+            <span class="nome">{{ item.nome }}</span>
+          </div>
+          <span class="preco">R$ {{ (item.preco * item.quantidade) | number:'1.2-2' }}</span>
+        </div>
+        
+        <div class="empty-state" *ngIf="mesaSelecionada.itens.length === 0">
+          <p>Nenhum item lançado.</p>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <div class="total-row">
+          <span>Total:</span>
+          <span class="total-value">R$ {{ mesaSelecionada.valorTotal | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn-action btn-add" (click)="adicionarItem()">➕ Adicionar item</button>
+          
+          <button *ngIf="mesaSelecionada.status === 'pendente'" 
+                  class="btn-action btn-pay" 
+                  (click)="confirmarPagamento()">
+            ✔️ Confirmar Pagamento
+          </button>
+
+          <button *ngIf="mesaSelecionada.status === 'efetuado' || mesaSelecionada.status === 'liberada'" 
+                  class="btn-action btn-release" 
+                  (click)="liberarMesa()">
+            📤 Liberar Mesa
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
