@@ -8,10 +8,8 @@ export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'cardapio', component: CardapioComponent },
   { path: 'cozinha', component: CozinhaComponent },
-  
   // Rota pai para todas as rotas do gerente
   { path: 'gerente', children: gerenteRoutes },
-  
   // Redirecionamento para a raiz
   { path: '**', redirectTo: '' }
 ];

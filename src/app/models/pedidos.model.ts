@@ -1,23 +1,12 @@
-export interface Order {
-  id: number;
-  orderNumber: string;
-  dishName: string;
-  description: string;
-  status: OrderStatus;
-  orderTime: Date;
-  prepTime?: number;
-  startTime?: Date;
-  estimatedTime: number;
+export interface PedidoItemPayload {
+  prato: number;
+  quantidade: number;
+  observacao: string;
 }
 
-export enum OrderStatus {
-  PENDING = 'pending',
-  PREPARING = 'preparing',
-  READY = 'ready'
+export interface PedidoPayload {
+  mesa: number;
+  nome_cliente: string;
+  status: string;
+  itens: PedidoItemPayload[];
 }
-
-export interface TimeModalData {
-  order: Order | null;
-  isVisible: boolean;
-}
-

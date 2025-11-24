@@ -1,7 +1,8 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Order, OrderStatus } from '../../../models/pedidos.model';
-import { OrderService } from '../../../services/pedidos';
+import { Order, OrderStatus } from '../../../models/ordel.model';
+import { ItemCardapio } from '../../../models/item-cardapio.model';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-order-card',
@@ -12,22 +13,23 @@ import { OrderService } from '../../../services/pedidos';
 })
 export class OrderCardComponent implements OnInit, OnDestroy {
   @Input() order!: Order;
-  @Output() startPreparation = new EventEmitter<Order>();
+  @Input() pratosCardapio: ItemCardapio[] = [];
+  @Output() startPreparation = new EventEmitter<number>();
   @Output() finishOrder = new EventEmitter<number>();
   @Output() removeOrder = new EventEmitter<number>();
 
-  private updateInterval: any;
+  OrderStatus = OrderStatus;
+  private updateInterval?: any;
 
-  constructor(private orderService: OrderService) {}
+  constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    // Atualizar countdown a cada segundo se estiver em preparo
-    if (this.order.status === OrderStatus.PREPARING) {
-      this.updateInterval = setInterval(() => {
-        // Força a atualização do componente
-      }, 1000);
-    }
+  if (this.order.status === OrderStatus.PREPARING) {
+    this.updateInterval = setInterval(() => {
+      this.cdr.detectChanges(); // força atualização do template
+    }, 1000);
   }
+}
 
   ngOnDestroy(): void {
     if (this.updateInterval) {
@@ -36,8 +38,8 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   getCardClass(): string {
-    return this.order.status;
-  }
+  return this.order.status; 
+}
 
   getStatusClass(): string {
     return `status-${this.order.status}`;
@@ -57,37 +59,46 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   }
 
   getOrderTime(): string {
-    return this.order.orderTime.toLocaleTimeString('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(this.order.data).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 
-  getRemainingTime(): number {
-    return this.orderService.calculateRemainingTime(this.order);
+  getNomePrato(prato_nome: number): string {
+    const prato = this.pratosCardapio.find(p => p.id === prato_nome);
+    return prato ? prato.nome : `Prato #${prato_nome}`;
   }
 
   getFormattedRemainingTime(): string {
-    const minutes = Math.abs(this.getRemainingTime());
-    if (minutes < 60) {
-      return `${minutes}min`;
-    } else {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return `${hours}h ${mins}min`;
-    }
-  }
+    if (!this.order.tempo_estimado || !this.order.data) return '';
 
-  getCountdownClass(): string {
-    return this.isOvertime() ? 'countdown overtime' : 'countdown';
+    const criadoEm = new Date(this.order.data).getTime();
+    const prazoMs = this.order.tempo_estimado * 60 * 1000;
+    const expiracao = criadoEm + prazoMs;
+    const agora = Date.now();
+    const diff = Math.max(0, expiracao - agora);
+
+    const minutos = Math.floor(diff / 60000);
+    const segundos = Math.floor((diff % 60000) / 1000);
+
+    return `${minutos}m ${segundos}s`;
   }
 
   isOvertime(): boolean {
-    return this.getRemainingTime() <= 0;
+    if (!this.order.tempo_estimado || !this.order.data) return false;
+
+    const criadoEm = new Date(this.order.data).getTime();
+    const prazoMs = this.order.tempo_estimado * 60 * 1000;
+    return Date.now() > criadoEm + prazoMs;
+  }
+
+  getCountdownClass(): string {
+    return this.isOvertime() ? 'overdue' : '';
   }
 
   onStartPreparation(): void {
-    this.startPreparation.emit(this.order);
+    this.startPreparation.emit(this.order.id);
   }
 
   onFinishOrder(): void {
@@ -98,4 +109,3 @@ export class OrderCardComponent implements OnInit, OnDestroy {
     this.removeOrder.emit(this.order.id);
   }
 }
-
