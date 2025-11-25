@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, rgb(102, 20, 20) 0%, #4c0914 100%);
   padding: 20px;
 }
 
@@ -61,7 +61,7 @@
 
       &:focus {
         outline: none;
-        border-color: #667eea;
+        border-color: #d03b05;
       }
 
       &:disabled {
@@ -83,7 +83,7 @@
   .btn-primary {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #612020 0%, #760f0f 100%);
     color: white;
     border: none;
     border-radius: 8px;
@@ -94,7 +94,7 @@
 
     &:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 12px rgba(123, 22, 27, 0.4);
     }
 
     &:disabled {
@@ -108,7 +108,7 @@
     margin-top: 20px;
 
     a {
-      color: #667eea;
+      color: #570a0a;
       text-decoration: none;
       font-size: 0.9rem;
 

@@ -4,7 +4,7 @@
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--wine-color);
   color: white;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -85,12 +85,12 @@
     transition: all 0.3s;
 
     &:hover {
-      color: #667eea;
+      color: var(--wine-color);
     }
 
     &.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: var(--wine-color);
+      border-bottom-color: var(--wine-color);
     }
   }
 }
@@ -235,7 +235,7 @@
       }
 
       .categoria {
-        color: #667eea;
+        color: var(--wine-color);
         font-size: 0.85rem;
         margin: 0 0 10px 0;
       }
@@ -285,7 +285,7 @@
 .btn-primary {
   display: inline-block;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--wine-color);
   color: white;
   text-decoration: none;
   border-radius: 8px;
@@ -294,7 +294,7 @@
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px var(--shadow);
   }
 }
 
@@ -302,7 +302,7 @@
   display: inline-block;
   padding: 10px 20px;
   background: white;
-  color: #667eea;
+  color: var(--wine-color);
   text-decoration: none;
   border: 2px solid #667eea;
   border-radius: 8px;

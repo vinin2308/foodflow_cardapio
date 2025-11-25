@@ -345,3 +345,130 @@
 }
 
 }
+
+@media (max-width: 768px) {
+  .cardapio-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .header-info {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mesa-info {
+    display: none; /* Oculta info de mesa/cliente no mobile para simplificar */
+  }
+
+  .carrinho-btn {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    z-index: 101;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 6px 20px var(--shadow);
+  }
+
+  .codigo-acesso {
+    display: none; /* Oculta código de acesso no mobile */
+  }
+
+  .categorias-nav {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 10px 0;
+    justify-content: flex-start;
+  }
+
+  .categoria-btn {
+    flex: 0 0 auto;
+    margin-right: 10px;
+    padding: 8px 15px;
+  }
+
+  .cardapio-content {
+    padding: 10px;
+  }
+
+  .itens-grid {
+    grid-template-columns: 1fr; /* Uma coluna no mobile */
+    gap: 20px;
+  }
+
+  .item-card {
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .item-main-content {
+    flex-direction: column;
+    gap: 10px !important;
+  }
+
+  .item-img-wrapper {
+    width: 100%;
+    height: 200px;
+    order: -1; /* Imagem em cima */
+  }
+
+  .item-info {
+    width: 100%;
+  }
+
+  .item-actions {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .cardapio-content {
+    padding: 20px;
+  }
+
+  .itens-grid {
+    grid-template-columns: repeat(2, 1fr); /* Duas colunas em tablets */
+  }
+}
+
+/* Estilos para padronizar as imagens */
+.item-card {
+  display: flex;
+  flex-direction: column;
+  /* Garante que o item-main-content ocupe o espaço */
+}
+
+.item-main-content {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-grow: 1;
+  margin-bottom: 15px; /* Adiciona espaço entre o conteúdo principal e as ações */
+}
+
+.item-img-wrapper {
+  flex-shrink: 0;
+  width: 120px; /* Largura fixa para a imagem */
+  height: 120px; /* Altura fixa para a imagem */
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.produto-imagem {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Garante que a imagem cubra o wrapper sem distorcer */
+  transition: transform 0.3s ease;
+}
+
+.item-card:hover .produto-imagem {
+  transform: scale(1.05);
+}
