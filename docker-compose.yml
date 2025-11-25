@@ -1,37 +1,74 @@
-version: '3.9'
+version: '3.8'
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: foodflow-redis
+  # ----------------------------------------
+  # 1. SERVIÇO DO BANCO DE DADOS (POSTGRESQL)
+  # ----------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: foodflow-postgres
+    # O Kubernetes usa o nome do serviço para DNS, aqui ele é 'db'
+    hostname: db
+    environment:
+      # Variáveis lidas pelo Django no settings.py (via dj-database-url)
+      POSTGRES_DB: foodflow
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 11022006
+    # Garante que os dados do banco persistam no seu disco rígido
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    # Porta 5432 exposta para você poder inspecionar o banco com DBeaver/pgAdmin
     ports:
-      - "6379:6379"
+      - "5432:5432"
 
+  # ----------------------------------------
+  # 2. SERVIÇO DO BACKEND (DJANGO + GUNICORN)
+  # ----------------------------------------
   backend:
     build:
-      context: ./backend/foodflow  # pasta onde está o Dockerfile
+      context: ./backend/foodflow
       dockerfile: Dockerfile
     container_name: foodflow-backend
-    restart: always
-    environment:
-      DJANGO_SETTINGS_MODULE: foodflow.settings
-      DATABASE_URL: postgres://postgres:11022006@host.docker.internal:5432/foodflow
-      REDIS_HOST: redis   # Django Channels vai usar isso
-    depends_on:
-      - redis
+    # Comando de produção (Gunicorn + WSGI)
+    command: gunicorn foodflow.wsgi:application --bind 0.0.0.0:8000 --workers 3
+    # Mapeia a porta 8000 do container para a porta 8000 da sua máquina
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend/foodflow:/app
+    # Certifique-se de que o backend só inicie DEPOIS do banco de dados
+    depends_on:
+      - db
+    environment:
+      # URL lida pelo dj_database_url no settings.py do Django
+      # O hostname é 'db' (nome do serviço)
+      DATABASE_URL: postgres://postgres:11022006@db:5432/foodflow
+      # Variáveis de ambiente
+      DEBUG: "True" # Ou "False" para testar o WhiteNoise
+      SECRET_KEY: "problemasproblematicosorubertoresolveporqueeleeoreidoprompt@@!!"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+      # O Frontend Angular roda na 4200 (na sua máquina)
+      CORS_ALLOWED_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
 
+  # ----------------------------------------
+  # 3. SERVIÇO DO FRONTEND (ANGULAR + NGINX)
+  # ----------------------------------------
   frontend:
     build:
-      context: . # pasta do seu projeto Angular
+      context: .
       dockerfile: Dockerfile
     container_name: foodflow-frontend
-    restart: always
-    depends_on:
-      - backend
-    environment:
-      API_URL: http://backend:8000/api
-      WS_URL: ws://backend:8000/ws
+    # Mapeia a porta 80 do Nginx para a porta 80 da sua máquina (URL padrão)
     ports:
       - "8080:80"
+    depends_on:
+      - backend
+    # IMPORTANTE: Garante que o ambiente 'prod' seja usado (com a URL da API correta)
+    environment:
+      # Variável para o build saber onde está a API (necessário se o build usa variáveis)
+      NODE_ENV: production 
+    # volumes: (Normalmente não usados no frontend para evitar problemas de cache)
+
+# Volume para persistência do banco de dados
+volumes:
+  postgres_data:

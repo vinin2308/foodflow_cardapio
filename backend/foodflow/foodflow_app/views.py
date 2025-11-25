@@ -1,7 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view, permission_classes
+# Adicionado 'authentication_classes' nas importações
+from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.utils.decorators import method_decorator
@@ -9,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
+# REMOVIDOS OS IMPORTS DE CHANNELS E ASGIREF
 
 from .models import (
     Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento,
@@ -28,7 +30,9 @@ from .serializers import (
 # AUTENTICAÇÃO DO GERENTE
 # ----------------------------
 
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([]) # Desativa auth/CSRF para registro público
 @permission_classes([AllowAny])
 def gerente_registro(request):
     """Registro de novo gerente"""
@@ -42,7 +46,9 @@ def gerente_registro(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([]) # Desativa auth/CSRF para login público
 @permission_classes([AllowAny])
 def gerente_login(request):
     """Login do gerente"""
@@ -59,7 +65,7 @@ def gerente_login(request):
                 'user': GerentePerfilSerializer(user).data
             })
         return Response({'erro': 'Credenciais inválidas ou usuário não é gerente'}, 
-                       status=status.HTTP_401_UNAUTHORIZED)
+                        status=status.HTTP_401_UNAUTHORIZED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -87,7 +93,9 @@ def gerente_perfil(request):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([]) # Recuperação de senha também é pública
 @permission_classes([AllowAny])
 def gerente_esqueceu_senha(request):
     """Recuperação de senha (placeholder - implementar envio de email)"""
@@ -130,7 +138,7 @@ class PratoGerenteViewSet(viewsets.ModelViewSet):
         # Gerente pode ver todos os pratos (ativos e inativos)
         return Prato.objects.all().order_by('-criado_em')
 
-# 🔔 Função para emitir eventos via WebSocket (quando cria/atualiza pedidos)
+# ❌ REMOVIDA AQUI A FUNÇÃO 'emitir_pedido_websocket'
 
 @api_view(['GET'])
 def pedido_por_codigo(request, codigo):
@@ -142,7 +150,10 @@ def pedido_por_codigo(request, codigo):
     return Response(serializer.data)
 
 # 🚪 Iniciar uma nova comanda para uma mesa
-@api_view(['POST'])
+@csrf_exempt
+@api_view(['POST', 'OPTIONS'])
+@authentication_classes([]) # Desativa autenticação (e verificação CSRF do DRF) para esta view
+@permission_classes([AllowAny])
 def iniciar_comanda(request):
     nome_cliente = request.data.get('nome_cliente')
     mesa_id = request.data.get('mesa')
@@ -161,6 +172,9 @@ def iniciar_comanda(request):
     ).order_by('-criado_em').first()
 
     if comanda_existente:
+        if nome_cliente and not comanda_existente.nome_cliente:
+            comanda_existente.nome_cliente = nome_cliente
+            comanda_existente.save()
         return Response({'codigo_acesso': comanda_existente.codigo_acesso})
 
     # ✅ Criar nova comanda
@@ -255,8 +269,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedidos = Pedido.objects.all() if not status_param else Pedido.objects.filter(status=status_param)
 
         if request.method == 'GET':
-            # ✅ CORREÇÃO 1: Forçar uso do ReadSerializer para listar na cozinha
-            # Isso garante que campos como 'prato_nome', 'mesa_numero' e 'criado_em' apareçam.
+            # ✅ CORREÇÃO: Forçar uso do ReadSerializer para listar na cozinha
             serializer = PedidoReadSerializer(pedidos, many=True)
             return Response(serializer.data)
 
@@ -265,8 +278,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         pedido = serializer.save()
         
-        # ✅ CORREÇÃO 2: WebSocket removido para evitar erro 500
-        # emitir_pedido_websocket(pedido) <--- REMOVIDO
+        # ❌ REMOVIDO: emitir_pedido_websocket(pedido)
         
         # Retorna os dados completos para o Frontend
         return Response(PedidoReadSerializer(pedido).data, status=status.HTTP_201_CREATED)
@@ -277,8 +289,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedido.status = PedidoStatus.PRONTO
         pedido.save()
         
-        # ✅ CORREÇÃO 3: WebSocket removido
-        # emitir_pedido_websocket(pedido) <--- REMOVIDO
+        # ❌ REMOVIDO: emitir_pedido_websocket(pedido)
         
         return Response(PedidoReadSerializer(pedido).data)
 

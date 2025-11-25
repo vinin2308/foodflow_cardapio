@@ -9,7 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
+import dj_database_url
 from pathlib import Path
 
 from decouple import config
@@ -25,9 +26,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -46,7 +47,6 @@ INSTALLED_APPS = [
     'foodflow_app',
     'rest_framework',
     'rest_framework.authtoken',
-    'channels',
 ]
 
 MIDDLEWARE = [
@@ -87,12 +87,13 @@ WSGI_APPLICATION = 'foodflow.wsgi.application'
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # cria o arquivo db.sqlite3 na raiz do projeto
-    }
+    'default': dj_database_url.config(
+        # Fallback para SQLite se DATABASE_URL não estiver setado (apenas para testes)
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}", 
+        conn_max_age=600, # Mantém conexões abertas para melhor performance
+        conn_health_checks=True,
+    )
 }
-
 
 
 # Password validation
@@ -130,7 +131,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# Configuração de Estáticos para WhiteNoise
+STATIC_URL = '/static/'
+
+# Define onde o 'collectstatic' vai juntar todos os arquivos CSS/JS/Imagens
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
+
+# Configuração crucial para o Gunicorn servir o CSS em produção
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -149,6 +157,17 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'foodflow_app.Usuario'
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",      # para desenvolvimento local
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    'CORS_ALLOWED_ORIGINS', 
+    'http://localhost:4200,http://127.0.0.1:4200,http://localhost:8080,http://127.0.0.1:8080'
+).split(',')
+
+# ✅ NOVO: CSRF TRUSTED ORIGINS (Obrigatório para POST/PUT/DELETE funcionarem)
+# O Django verifica o cabeçalho 'Origin' ou 'Referer'.
+# Como o Nginx está na porta 8080, o Django precisa confiar nela.
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    # Se você for subir para AWS com IP direto, adicione o IP aqui também:
+    # 'http://54.94.65.113'
 ]

@@ -1,5 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:8000/api',
-  wsUrl: 'ws://localhost:8000'
+  // ✅ DEVE APONTAR PARA A PORTA ONDE O NGINX ESTÁ EXPOSTO
+  apiUrl: 'http://localhost:8080/api' 
 };
