@@ -367,5 +367,29 @@
     padding: 14px;
     font-size: 1rem;
   }
+  .comanda-info {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.codigo-acesso {
+  background: var(--golden-yellow);
+  color: var(--wine-color);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+
+  strong {
+    margin-left: 4px;
+    color: var(--wine-color);
+  }
+}
+
 }
 

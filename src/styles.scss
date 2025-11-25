@@ -159,7 +159,8 @@ label {
 }
 
 /* Responsividade */
-@media (max-width: 768px) {
+
+@media (max-width: 768px) {}
   .btn {
     padding: 14px 20px;
     font-size: 14px;
@@ -169,5 +170,6 @@ label {
     padding: 14px 16px;
     font-size: 16px; /* Evita zoom no iOS */
   }
-}
 
+
+  

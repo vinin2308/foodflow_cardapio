@@ -1,259 +1,124 @@
-// Variáveis fornecidas + Ajustes funcionais
+/* --- VARIÁVEIS --- */
 :host {
-  --wine-color: #722F37;
+  --wine: #722F37;
   --dark-red: #8B0000;
-  --golden-yellow: #FFD700;
-  --light-wine: #A0565E;
-  --dark-wine: #5A252A;
+  --green: #2E8B57;
+  --gold: #FFD700;
+  --orange: #ff9800;
   --cream: #FFF8DC;
   --white: #FFFFFF;
-  --gray-light: #F5F5F5;
-  --gray-medium: #CCCCCC;
-  --gray-dark: #666666;
-  --shadow: rgba(114, 47, 55, 0.15);
-  
-  // Cores funcionais pedidas no prompt
-  --status-green: #2E8B57;
-  --status-blue: #4682B4;
 }
 
 .foodflow-container {
-  background-color: var(--cream);
-  min-height: 100vh;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  padding-bottom: 80px;
+  background-color: var(--cream); min-height: 100vh; padding-bottom: 80px; font-family: 'Segoe UI', sans-serif;
 }
 
-/* --- 1. Barra Superior --- */
+/* --- BARRAS --- */
 .top-bar {
-  background-color: var(--white);
-  padding: 1rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 10px var(--shadow);
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--wine-color);
-    
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      small { font-size: 0.9rem; color: var(--light-wine); font-weight: normal; }
-    }
-  }
-
-  .search-bar {
-    display: flex;
-    align-items: center;
-    background: var(--gray-light);
-    padding: 8px 15px;
-    border-radius: 8px;
-    border: 1px solid var(--gray-medium);
-    width: 300px;
-
-    input {
-      border: none;
-      background: transparent;
-      outline: none;
-      width: 100%;
-      margin-left: 8px;
-      color: var(--gray-dark);
-    }
-  }
+  background: var(--white); padding: 1rem; display: flex; justify-content: space-between; 
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  h1 { margin: 0; color: var(--wine); font-size: 1.5rem; small { font-size: 0.9rem; color: #888; } }
+}
+.search-bar {
+  background: #f5f5f5; padding: 8px 15px; border-radius: 8px; display: flex; align-items: center;
+  input { border: none; background: transparent; margin-left: 10px; outline: none; }
+}
+.actions-bar { padding: 1.5rem; display: flex; justify-content: space-between; }
+.filters button {
+  padding: 8px 16px; border: 1px solid var(--wine); background: transparent; color: var(--wine); 
+  border-radius: 20px; margin-right: 10px; cursor: pointer; transition: 0.3s;
+  &.active, &:hover { background: var(--wine); color: var(--white); }
 }
 
-/* --- Filtros --- */
-.actions-bar {
-  padding: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  
-  .filters {
-    display: flex;
-    gap: 10px;
-    
-    button {
-      padding: 8px 16px;
-      border: 1px solid var(--wine-color);
-      background: transparent;
-      color: var(--wine-color);
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: 0.3s;
-
-      &.active, &:hover {
-        background: var(--wine-color);
-        color: var(--white);
-      }
-    }
-  }
-
-  .btn-new {
-    background: var(--golden-yellow);
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    color: var(--dark-wine);
-  }
-}
-
-/* --- 2. Grid de Cards --- */
+/* --- GRID DE MESAS --- */
 .mesas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  padding: 0 1.5rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; padding: 0 1.5rem;
 }
 
 .mesa-card {
-  background: var(--white);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 15px var(--shadow);
-  cursor: pointer;
-  transition: transform 0.2s;
+  background: var(--white); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  overflow: hidden; cursor: pointer; transition: transform 0.2s; border: 2px solid transparent;
 
   &:hover { transform: translateY(-3px); }
 
-  .card-header {
-    padding: 10px;
-    color: white;
-    text-align: center;
-    font-weight: bold;
-    font-size: 0.9rem;
-    
-    &.bg-dark-red { background-color: var(--dark-red); } /* Pendente */
-    &.bg-green { background-color: var(--status-green); } /* Efetuado */
-    &.bg-golden { background-color: var(--golden-yellow); color: var(--dark-wine); } /* Liberada */
-    &.bg-blue { background-color: var(--status-blue); } /* Aguardando */
+  /* ALERTA LARANJA */
+  &.chamando {
+    border-color: var(--orange);
+    animation: pulseOrange 2s infinite;
+    .card-header { background-color: var(--orange) !important; }
   }
+}
 
-  .card-body {
-    padding: 15px;
-    
-    .mesa-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      
-      h2 { margin: 0; color: var(--wine-color); font-size: 1.4rem; }
-      .garcom-name { font-size: 0.8rem; color: var(--gray-dark); }
-    }
+.card-header {
+  padding: 12px; color: var(--white); display: flex; justify-content: space-between; align-items: center; font-weight: bold;
+  &.bg-green { background: var(--green); }
+  &.bg-dark-red { background: var(--dark-red); }
+  &.bg-golden { background: var(--gold); color: #333; }
+  &.bg-gray { background: #ccc; }
+  
+  .status-indicator { display: flex; gap: 8px; align-items: center; }
+}
 
-    .mesa-valor {
-      display: flex;
-      flex-direction: column;
-      small { color: var(--gray-dark); font-size: 0.8rem; }
-      strong { font-size: 1.4rem; color: var(--dark-wine); }
-    }
+.badge-ready {
+  background: var(--white); color: var(--dark-red); padding: 3px 8px; border-radius: 12px; 
+  font-size: 0.75rem; font-weight: bold; display: flex; gap: 5px; align-items: center;
+}
+
+.alert-calling {
+  padding: 25px 0; text-align: center; color: #e65100;
+  i { font-size: 28px; margin-bottom: 8px; display: block; }
+  span { font-weight: bold; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px; }
+}
+
+.mesa-info {
+  padding: 15px;
+  h2 { margin: 0; color: var(--wine); font-size: 1.3rem; }
+  .garcom-name { font-size: 0.8rem; color: #666; display: block; margin-top: 5px; i { margin-right: 5px;} }
+}
+
+.mesa-valor {
+  padding: 0 15px 15px 15px; display: flex; flex-direction: column;
+  small { color: #666; font-size: 0.8rem; }
+  strong { font-size: 1.3rem; color: var(--wine); }
+}
+
+/* --- DRAWER --- */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: flex-end; z-index: 1000; }
+.drawer { width: 100%; max-width: 400px; background: var(--cream); height: 100%; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.2); animation: slideIn 0.3s; }
+.drawer-header { padding: 20px; background: var(--white); border-bottom: 1px solid #ddd; .btn-back { border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--wine); }}
+.drawer-content { flex: 1; padding: 20px; overflow-y: auto; }
+
+.item-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #ccc; 
+  .qtd { font-weight: bold; margin-right: 8px; color: var(--wine); }
+}
+
+/* Alertas Especiais no Drawer */
+.alert-box-drawer {
+  background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; border: 1px solid #ffe0b2;
+  p { margin: 0; color: #e65100; font-weight: bold; }
+  .btn-attend {
+    background: var(--orange); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px;
   }
+}
 
-  .card-footer {
-    padding: 10px;
-    text-align: center;
-    border-top: 1px solid var(--gray-light);
-    
-    .btn-ver {
-      background: none;
-      border: none;
-      color: var(--light-wine);
-      font-weight: 600;
-      cursor: pointer;
+.alert-pronto {
+  background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #c8e6c9;
+  h4 { margin: 0 0 10px 0; color: var(--green); font-size: 0.9rem; }
+  .pedido-pronto-row {
+    display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 6px; margin-bottom: 5px;
+    .btn-entregar {
+      background: var(--green); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;
     }
   }
 }
 
-/* --- 3. Modal / Drawer --- */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.4);
-  display: flex;
-  justify-content: flex-end; /* Alinha à direita como drawer */
-  z-index: 1000;
+.drawer-footer { padding: 20px; background: var(--white); box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+.total-row { display: flex; justify-content: space-between; font-size: 1.4rem; font-weight: bold; margin-bottom: 20px; color: var(--wine); }
+.action-buttons { display: flex; flex-direction: column; gap: 10px; .btn-action { padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; } .btn-release { background: var(--gold); color: #333; } }
+
+@keyframes pulseOrange {
+  0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
 }
-
-.drawer {
-  width: 100%;
-  max-width: 400px;
-  background: var(--cream);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -5px 0 15px rgba(0,0,0,0.2);
-  animation: slideIn 0.3s ease-out;
-
-  .drawer-header {
-    padding: 20px;
-    background: var(--white);
-    border-bottom: 1px solid var(--gray-medium);
-    
-    .btn-back { border: none; background: none; color: var(--wine-color); cursor: pointer; font-size: 1rem; margin-bottom: 10px;}
-    h3 { margin: 0; color: var(--wine-color); }
-    .meta-info { display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.85rem; color: var(--gray-dark); }
-  }
-
-  .drawer-content {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-    
-    .item-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px dashed var(--gray-medium);
-      
-      .item-desc {
-        .qtd { font-weight: bold; margin-right: 8px; color: var(--wine-color); }
-      }
-    }
-  }
-
-  .drawer-footer {
-    padding: 20px;
-    background: var(--white);
-    box-shadow: 0 -2px 10px var(--shadow);
-
-    .total-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 20px;
-      color: var(--dark-wine);
-    }
-
-    .action-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-
-      .btn-action {
-        padding: 12px;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-        cursor: pointer;
-        color: white;
-      }
-
-      .btn-add { background: var(--light-wine); }
-      .btn-pay { background: var(--dark-wine); }
-      .btn-release { background: var(--golden-yellow); color: var(--dark-wine); }
-    }
-  }
-}
-
-@keyframes slideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }

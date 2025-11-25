@@ -1,0 +1,50 @@
+<div class="modal" [class.show]="isVisible" (click)="onBackdropClick($event)">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ isFinalizing ? 'Finalizar Pedido' : 'Definir Tempo de Preparo' }}</h3>
+      <button class="close-btn" (click)="onClose()" id="btn-fechar-modal">&times;</button>
+    </div>
+
+    <div class="modal-body" *ngIf="order">
+      <div class="dish-info">
+        <p class="pedido-id"><strong>Pedido #{{ order.id }}</strong></p>
+        <p><strong>Mesa:</strong> {{ order.mesa }}</p>
+        <p><strong>Cliente:</strong> {{ order.nome_cliente }}</p>
+
+        <ul class="dish-list">
+          <li *ngFor="let item of order.itens">
+            <i class="fas fa-utensils"></i>
+            {{ item.quantidade }}x {{ item.prato_nome }}
+            <span *ngIf="item.observacao">({{ item.observacao }})</span>
+          </li>
+        </ul>
+
+        <p><strong>Status:</strong> {{ order.status }}</p>
+      </div>
+
+      <div class="time-input-group" *ngIf="!isFinalizing">
+        <label for="prepTime"><strong>Tempo estimado (minutos):</strong></label>
+        <div class="time-controls">
+          <button class="time-btn" (click)="adjustTime(-5)">-5</button>
+          <button class="time-btn" (click)="adjustTime(-1)">-1</button>
+          <input 
+            type="number" 
+            id="prepTime" 
+            min="1" 
+            max="120" 
+            [(ngModel)]="prepTime">
+          <button class="time-btn" (click)="adjustTime(1)">+1</button>
+          <button class="time-btn" (click)="adjustTime(5)">+5</button>
+        </div>
+        <p class="tempo-atual"><em>Tempo atual: {{ prepTime }} min</em></p>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-cancel" (click)="onClose()">Cancelar</button>
+        <button class="btn btn-confirm" (click)="onConfirm()">
+          {{ isFinalizing ? 'Confirmar Finalização' : 'Iniciar Preparo' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,125 @@
+<div class="gerente-perfil">
+  <header class="header">
+    <div class="header-content">
+      <h1>🍽️ FoodFlow - Gerente</h1>
+      <button class="btn-logout" (click)="logout()">🚪 Sair</button>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <a routerLink="/gerente/home">🏠 Início</a>
+    <a routerLink="/gerente/pratos">🍕 Pratos</a>
+    <a routerLink="/gerente/categorias">📂 Categorias</a>
+  </nav>
+
+  <main class="content">
+    <div class="perfil-card">
+      <div class="perfil-header">
+        <div class="avatar">👤</div>
+        <div class="perfil-info">
+          <h2>{{ user?.first_name || user?.username }}</h2>
+          <p>{{ user?.email }}</p>
+          <span class="badge">{{ user?.role }}</span>
+        </div>
+      </div>
+
+      <div class="sucesso" *ngIf="sucesso">
+        {{ sucesso }}
+      </div>
+
+      <div class="erro" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <form *ngIf="editando" (ngSubmit)="salvarPerfil()" class="perfil-form">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input
+            type="text"
+            id="username"
+            [(ngModel)]="dadosEdicao.username"
+            name="username"
+            [disabled]="carregando"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            [(ngModel)]="dadosEdicao.email"
+            name="email"
+            [disabled]="carregando"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first_name">Nome</label>
+            <input
+              type="text"
+              id="first_name"
+              [(ngModel)]="dadosEdicao.first_name"
+              name="first_name"
+              [disabled]="carregando"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="last_name">Sobrenome</label>
+            <input
+              type="text"
+              id="last_name"
+              [(ngModel)]="dadosEdicao.last_name"
+              name="last_name"
+              [disabled]="carregando"
+            />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="cancelarEdicao()" [disabled]="carregando">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="carregando">
+            {{ carregando ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      </form>
+
+      <div *ngIf="!editando" class="perfil-detalhes">
+        <div class="detalhe-item">
+          <span class="label">Usuário:</span>
+          <span class="valor">{{ user?.username }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="label">Email:</span>
+          <span class="valor">{{ user?.email }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="label">Nome:</span>
+          <span class="valor">{{ user?.first_name || '-' }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="label">Sobrenome:</span>
+          <span class="valor">{{ user?.last_name || '-' }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="label">Função:</span>
+          <span class="valor">{{ user?.role }}</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="label">Membro desde:</span>
+          <span class="valor">{{ user?.criado_em | date: 'dd/MM/yyyy' }}</span>
+        </div>
+
+        <button class="btn-primary" (click)="ativarEdicao()">
+          ✏️ Editar Perfil
+        </button>
+      </div>
+    </div>
+  </main>
+</div>

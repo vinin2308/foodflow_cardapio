@@ -18,6 +18,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
+            "outputPath": "dist/foodflow",
             "polyfills": [
               "zone.js"
             ],
@@ -27,7 +28,8 @@
               {
                 "glob": "**/*",
                 "input": "public"
-              }
+              },
+              "src/assets"
             ],
             "styles": [
               "src/styles.scss"
@@ -38,13 +40,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "1MB",
+                  "maximumError": "2MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "20kB",
+                  "maximumError": "50kB"
                 }
               ],
               "outputHashing": "all"
@@ -53,6 +55,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "docker": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.docker.ts"
+                }
+              ],
+              "optimization": true,
+              "outputHashing": "all",
+              "sourceMap": false
             }
           },
           "defaultConfiguration": "production"
@@ -65,6 +78,9 @@
             },
             "development": {
               "buildTarget": "foodflow:build:development"
+            },
+            "docker": {
+              "buildTarget": "foodflow:build:docker"
             }
           },
           "defaultConfiguration": "development"
@@ -88,7 +104,8 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "node_modules/@angular/material/prebuilt-themes/indigo-pink.css"
             ]
           }
         }

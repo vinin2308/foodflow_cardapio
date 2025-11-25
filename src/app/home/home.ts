@@ -2,12 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CarrinhoService } from '../services/carrinho';
+import { HttpClientModule } from '@angular/common/http';
+import { ApiService } from '../services/api.service'; 
+import { ComandaService } from '../services/comanda.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HttpClientModule],
   templateUrl: './home.html',
   styleUrls: ['./home.scss']
 })
@@ -15,110 +17,95 @@ export class HomeComponent implements OnInit {
   mesa: string = '';
   nome: string = '';
   numeroPessoas: number = 1;
-  isPrimeiroAcesso: boolean = true;
+  codigoAcesso: string = '';
+  modo: 'iniciar' | 'entrar' = 'iniciar';
+  isComandaPrincipal: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private carrinhoService: CarrinhoService
+    private apiService: ApiService,
+    private comandaService: ComandaService
   ) {}
 
   ngOnInit() {
-    // Verificar se a mesa foi passada via QR Code (query parameter)
     this.route.queryParams.subscribe(params => {
       if (params['mesa']) {
         this.mesa = params['mesa'];
-        // Ao receber a mesa do QR Code, verifica imediatamente o status de acesso
-        this.onMesaChange();
       }
     });
   }
 
-  onMesaChange() {
-    this.verificarPrimeiroAcesso();
-  }
-
-  verificarPrimeiroAcesso() {
-    // A verificação só faz sentido se houver um número de mesa preenchido
-    if (this.mesa && this.mesa.trim() !== '') {
-      const comandaExistente = localStorage.getItem(`comanda-${this.mesa}`);
-      this.isPrimeiroAcesso = !comandaExistente;
-    } else {
-      // Se a mesa estiver vazia, o padrão é ser o primeiro acesso.
-      this.isPrimeiroAcesso = true;
-    }
-  }
-
+  // --- MODO 1: INICIAR COMANDA NOVA ---
   iniciarPedido() {
-    if (!this.mesa) {
-      alert('Por favor, informe o número da mesa.');
+    const mesaNumero = Number(this.mesa);
+    if (isNaN(mesaNumero) || mesaNumero <= 0) {
+      alert('Por favor, insira um número de mesa válido.');
       return;
     }
 
-    // Salvar mesa atual no localStorage
-    localStorage.setItem('mesa-atual', this.mesa);
-    
-    // Iniciar nova comanda
-    this.carrinhoService.iniciarComanda(this.mesa, this.nome);
-
-    // Salvar mesa como ativa
-    this.salvarMesaAtiva();
-
-    console.log('Iniciando pedido para mesa:', this.mesa);
-    console.log('Nome:', this.nome);
-    if (this.isPrimeiroAcesso) {
-      console.log('Número de pessoas:', this.numeroPessoas);
+    if (!this.nome) {
+      alert('Por favor, insira seu nome.');
+      return;
     }
 
-    // Navegar para o cardápio
-    this.router.navigate(['/cardapio'], { 
-      queryParams: { 
-        mesa: this.mesa, 
-        nome: this.nome,
-        pessoas: this.isPrimeiroAcesso ? this.numeroPessoas : undefined
-      } 
+    localStorage.clear(); 
+
+    // Salva dados apenas localmente. O pedido nasce no Carrinho.
+    this.salvarDadosSessao(mesaNumero, this.nome, '');
+
+    this.router.navigate(['/cardapio']);
+  }
+
+  // --- MODO 2: ENTRAR EM COMANDA EXISTENTE ---
+  entrarPorCodigo() {
+    if (!this.codigoAcesso.trim()) {
+      alert('Digite o código de acesso.');
+      return;
+    }
+
+    this.apiService.consultarStatusPedido(this.codigoAcesso).subscribe({
+      next: (dados: any) => {
+        const pedido = Array.isArray(dados) ? dados[0] : dados;
+
+        if (pedido) {
+          const mesaDoPedido = pedido.mesa_numero || pedido.mesa;
+          
+          this.salvarDadosSessao(mesaDoPedido, this.nome, this.codigoAcesso);
+          
+          localStorage.setItem('pedido_ativo', this.codigoAcesso);
+
+          alert(`Vinculado à mesa ${mesaDoPedido} com sucesso!`);
+          this.router.navigate(['/cardapio']);
+        } else {
+          alert('Código não encontrado ou comanda já fechada.');
+        }
+      },
+      error: (err) => {
+        console.error(err);
+        alert('Erro ao validar código.');
+      }
     });
   }
 
-  entrarPedidoExistente() {
-    if (!this.mesa) {
-      alert('Por favor, informe o número da mesa.');
-      return;
+  // --- Helper para salvar no navegador ---
+  private salvarDadosSessao(mesa: number, nome: string, codigo: string) {
+    localStorage.setItem('mesa-atual', mesa.toString());
+    localStorage.setItem('nome', nome);
+    
+    if (codigo) {
+      localStorage.setItem('codigo_acesso_vinculado', codigo);
     }
 
-    // Salvar mesa atual no localStorage
-    localStorage.setItem('mesa-atual', this.mesa);
-
-    // Tentar conectar à comanda existente
-    const conectado = this.carrinhoService.conectarComanda(this.mesa);
-    
-    if (conectado) {
-      console.log('Entrando em pedido existente da mesa:', this.mesa);
-      console.log('Nome:', this.nome);
-      
-      // Navegar para o cardápio
-      this.router.navigate(['/cardapio'], { 
-        queryParams: { 
-          mesa: this.mesa, 
-          nome: this.nome 
-        } 
-      });
-    } else {
-      alert('Não há pedido ativo para esta mesa. Inicie um novo pedido.');
-    }
-  }
-
-  private salvarMesaAtiva() {
-    const mesasExistentes = localStorage.getItem('mesas_ativas');
-    let mesas: string[] = [];
-    
-    if (mesasExistentes) {
-      mesas = JSON.parse(mesasExistentes);
-    }
-    
-    if (!mesas.includes(this.mesa)) {
-      mesas.push(this.mesa);
-      localStorage.setItem('mesas_ativas', JSON.stringify(mesas));
+    if (this.comandaService) {
+        // CORREÇÃO AQUI: Removi o 'get' e os parênteses '()'
+        const comandaAtual = this.comandaService.comandaAtualValue; 
+        
+        if (comandaAtual) {
+            comandaAtual.nome_cliente = nome;
+            comandaAtual.mesa_numero = mesa;
+            this.comandaService.setComanda(comandaAtual);
+        }
     }
   }
 }

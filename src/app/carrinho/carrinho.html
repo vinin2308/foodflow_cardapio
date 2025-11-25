@@ -8,7 +8,7 @@
 
     <!-- Informações da Mesa -->
     <div class="mesa-info" *ngIf="comanda">
-      <span class="mesa">Mesa {{ comanda.mesa }}</span>
+      <span class="mesa">Mesa {{ comanda.mesa_numero }}</span>
       <span class="status" [class]="comanda.status">{{ getStatusTexto(comanda.status) }}</span>
     </div>
 
@@ -22,47 +22,49 @@
 
       <div *ngIf="!carrinhoVazio" class="itens-lista">
         <div class="item-carrinho" *ngFor="let item of comanda?.itens">
-          <div class="item-info">
-            <h4>{{ item.item.nome }}</h4>
-            <p class="item-preco">{{ formatarPreco(item.item.preco) }}</p>
-            <p class="item-observacao" *ngIf="item.observacao">
-              <em>Obs: {{ item.observacao }}</em>
-            </p>
-          </div>
-
-          <div class="item-controles">
-            <div class="quantidade-controles">
-              <button 
-                class="btn-quantidade" 
-                (click)="diminuirQuantidade(item)"
-                [disabled]="item.quantidade <= 1"
-                id="diminuir-quantidade"
-              >
-                −
-              </button>
-              <span class="quantidade">{{ item.quantidade }}</span>
-              <button 
-                class="btn-quantidade" 
-                (click)="aumentarQuantidade(item)"
-                id="aumentar-quantidade"
-              >
-                +
-              </button>
+          <ng-container *ngIf="getPratoPorId(item.prato) as pratoCompleto">
+            <div class="item-info">
+              <h4>{{ pratoCompleto.nome }}</h4>
+              <p class="item-preco">{{ formatarPreco(pratoCompleto.preco) }}</p>
+              <p class="item-observacao" *ngIf="item.observacao">
+                <em>Obs: {{ item.observacao }}</em>
+              </p>
             </div>
 
-            <div class="item-subtotal">
-              {{ formatarPreco(calcularSubtotal(item)) }}
-            </div>
+            <div class="item-controles">
+              <div class="quantidade-controles">
+                <button 
+                  class="btn-quantidade" 
+                  (click)="diminuirQuantidade(item.prato, item.observacao)"
+                  [disabled]="item.quantidade <= 1"
+                  id="diminuir-quantidade"
+                >
+                  -
+                </button>
+                <span class="quantidade">{{ item.quantidade }}</span>
+                <button 
+                  class="btn-quantidade" 
+                  (click)="adicionarItem(item.prato, 1,item.observacao)"
+                  id="aumentar-quantidade"
+                >
+                  +
+                </button>
+              </div>
 
-            <button 
-              class="btn-remover" 
-              (click)="removerItem(item)"
-              title="Remover item"
-              id="remover-item"
-            >
-              🗑️
-            </button>
-          </div>
+              <div class="item-subtotal">
+                {{ formatarPreco(calcularSubtotal(item)) }}
+              </div>
+
+              <button 
+                class="btn-remover" 
+                (click)="removerItem(item.prato, item.observacao)"
+                title="Remover item"
+                id="remover-item"
+              >
+                🗑️
+              </button>
+            </div>
+          </ng-container>
         </div>
       </div>
     </div>
@@ -72,11 +74,11 @@
       <div class="resumo-pedido">
         <div class="linha-resumo">
           <span>Itens ({{ quantidadeTotalItens }})</span>
-          <span>{{ formatarPreco(comanda?.total || 0) }}</span>
+          <span>{{ formatarPreco(calcularTotal()) }}</span>
         </div>
         <div class="linha-total">
           <strong>Total</strong>
-          <strong>{{ formatarPreco(comanda?.total || 0) }}</strong>
+          <strong>{{ formatarPreco(calcularTotal()) }}</strong>
         </div>
       </div>
 

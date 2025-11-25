@@ -4,17 +4,30 @@ Django settings for foodflow project.
 
 from pathlib import Path
 
+from decouple import config
+
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-temporario123')
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-r3xnt(4ik!t^qq^-mft6hr7mjky$f=om^p#9nhz0gieh5%+$!5'
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
 
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -24,15 +37,14 @@ INSTALLED_APPS = [
     
     # Apps de terceiros
     'rest_framework',
-    'corsheaders',  # <--- 1. ADICIONE ISSO (pip install django-cors-headers)
-
-    # Seus apps
+    'rest_framework.authtoken',
     'foodflow_app',
-]
+    ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', # <--- 2. ADICIONE ISSO NO TOPO (Fundamental para o Angular)
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,18 +73,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'foodflow.wsgi.application'
 
 
+
+
+
+
 # Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',  # cria o arquivo db.sqlite3 na raiz do projeto
     }
 }
 
-# --- CONFIGURAÇÃO CRÍTICA PARA CORRIGIR O SEU ERRO ---
-# Isso diz ao Django: "Não use o User padrão, use o meu modelo Usuario"
-AUTH_USER_MODEL = 'foodflow_app.Usuario' 
-# -----------------------------------------------------
+
+
+# Password validation
+# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -89,19 +108,33 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# Configuração de CORS (Permitir que o Angular na porta 4200 converse com o Django)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:4200",
-]
 
-LANGUAGE_CODE = 'pt-br' # Sugestão: mudar para português
 
-TIME_ZONE = 'America/Sao_Paulo' # Sugestão: Ajustar fuso horário
+# Internationalization
+# https://docs.djangoproject.com/en/5.2/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
+
+AUTH_USER_MODEL = 'foodflow_app.Usuario'
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",      # para desenvolvimento local
+]

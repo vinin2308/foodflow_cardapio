@@ -38,27 +38,56 @@
       />
     </div>
 
+    <!-- Campo de código só aparece se modo for 'entrar' -->
+    <div class="form-group" *ngIf="modo === 'entrar'">
+      <label for="codigoAcesso">Código de acesso</label>
+      <input 
+        type="text" 
+        id="codigoAcesso" 
+        [(ngModel)]="codigoAcesso" 
+        placeholder="Digite o código"
+        class="form-input"
+      />
+    </div>
+
     <div class="buttons-section">
       <button 
         class="btn btn-primary" 
         id="iniciar-pedido"
-        (click)="iniciarPedido()"
+        (click)="modo = 'iniciar'; iniciarPedido()"
         [disabled]="!mesa || !numeroPessoas || numeroPessoas < 1"
       >
-        Iniciar Pedido
+        Iniciar Comanda Principal
       </button>
 
       <button 
-        class="btn btn-secondary" 
-        (click)="entrarPedidoExistente()"
-        [disabled]="!mesa || !numeroPessoas || numeroPessoas < 1"
+        class="btn btn-secondary"
+        (click)="modo = 'entrar'"
       >
-        Entrar em Pedido Existente
+        Vincular-se a Comanda Existente
+      </button>
+
+      <button 
+        class="btn btn-success"
+        *ngIf="modo === 'entrar'"
+        (click)="entrarPorCodigo()"
+        [disabled]="!codigoAcesso"
+      >
+        Confirmar Entrada
       </button>
     </div>
 
-    <div class="info-message">
-      <p>Todos os pedidos desta mesa são enviados juntos para a cozinha.</p>
+    <!-- Mensagens de status -->
+    <div class="info-message" *ngIf="modo === 'iniciar' && isComandaPrincipal">
+      <p class="alert alert-success">
+        ✅ Você iniciou uma <strong>comanda principal</strong> para a mesa <strong>{{ mesa }}</strong>.
+      </p>
+    </div>
+
+    <div class="info-message" *ngIf="modo === 'entrar' && !isComandaPrincipal && codigoAcesso">
+      <p class="alert alert-info">
+        🔗 Você está vinculado à <strong>comanda principal</strong> com código <code>{{ codigoAcesso }}</code>.
+      </p>
     </div>
   </div>
 </div>

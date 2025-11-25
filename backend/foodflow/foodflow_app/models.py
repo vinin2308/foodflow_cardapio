@@ -1,7 +1,8 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.utils import timezone
-
+from django.utils.crypto import get_random_string
+from django.core.exceptions import ValidationError
 
 # ----------------------------
 # ENUMS
@@ -15,18 +16,27 @@ class PedidoStatus(models.TextChoices):
     PAGO = 'pago', 'Pago'
     CANCELADO = 'cancelado', 'Cancelado'
 
-
 class PagamentoStatus(models.TextChoices):
     PENDENTE = 'pendente', 'Pendente'
     APROVADO = 'aprovado', 'Aprovado'
     RECUSADO = 'recusado', 'Recusado'
     CANCELADO = 'cancelado', 'Cancelado'
 
-
 class MetodoPagamento(models.TextChoices):
     DINHEIRO = 'dinheiro', 'Dinheiro'
     PIX = 'pix', 'Pix'
     CARTAO = 'cartao', 'Cartão'
+
+# ----------------------------
+# Função para gerar código único
+# ----------------------------
+
+def gerar_codigo_acesso_unico():
+    caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    while True:
+        codigo = get_random_string(6, allowed_chars=caracteres)
+        if not Pedido.objects.filter(codigo_acesso=codigo).exists():
+            return codigo
 
 
 # ----------------------------
@@ -40,10 +50,27 @@ class Usuario(AbstractUser):
         ('garcom', 'Garçom'),
         ('cozinheiro', 'Cozinheiro'),
     )
+    
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
+    groups = models.ManyToManyField(
+        Group,
+        related_name='foodflow_usuarios',
+        blank=True,
+        help_text='The groups this user belongs to.',
+        related_query_name='usuario',
+        verbose_name='groups',
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='foodflow_usuarios_permissions',
+        blank=True,
+        help_text='Specific permissions for this user.',
+        related_query_name='usuario',
+        verbose_name='user permissions',
+    )
 
 # ----------------------------
 # MESA
@@ -54,9 +81,13 @@ class Mesa(models.Model):
     capacidade = models.IntegerField()
     status = models.CharField(max_length=20, choices=[('disponivel', 'Disponível'), ('ocupada', 'Ocupada'), ('reservada', 'Reservada')])
     ativo = models.BooleanField(default=True)
+    
+    # --- NOVO CAMPO: ALERTA DE CHAMADO ---
+    solicitou_atencao = models.BooleanField(default=False)
+    # -------------------------------------
+
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-
 
 # ----------------------------
 # CATEGORIA / PRATO
@@ -64,11 +95,11 @@ class Mesa(models.Model):
 
 class Categoria(models.Model):
     nome = models.CharField(max_length=100, unique=True)
+    icone = models.CharField(max_length=10, blank=True)
     criado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-
 
 class Prato(models.Model):
     nome = models.CharField(max_length=100)
@@ -80,7 +111,6 @@ class Prato(models.Model):
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-
 
 # ----------------------------
 # INGREDIENTES / ESTOQUE
@@ -95,27 +125,80 @@ class Ingrediente(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
-
 class PratoIngrediente(models.Model):
     prato = models.ForeignKey(Prato, on_delete=models.CASCADE)
     ingrediente = models.ForeignKey(Ingrediente, on_delete=models.CASCADE)
     quantidade_utilizada = models.DecimalField(max_digits=10, decimal_places=2)
-
 
 # ----------------------------
 # PEDIDOS / ITENS
 # ----------------------------
 
 class Pedido(models.Model):
-    mesa = models.ForeignKey(Mesa, on_delete=models.PROTECT)
-    status = models.CharField(max_length=20, choices=PedidoStatus.choices, default=PedidoStatus.PENDENTE)
+    id = models.BigAutoField(primary_key=True)
+
+    # Código de acesso compartilhado entre comanda pai e filhas
+    codigo_acesso = models.CharField(
+        max_length=6,
+        editable=False,
+        db_index=True  # ainda otimiza buscas
+    )
+
+    mesa = models.ForeignKey('Mesa', on_delete=models.PROTECT)
+    nome_cliente = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[(s.value, s.label) for s in PedidoStatus],
+        default=PedidoStatus.PENDENTE
+    )
     tempo_estimado = models.IntegerField(null=True, blank=True)
-    criado_por = models.ForeignKey(Usuario, on_delete=models.PROTECT)
+    criado_por = models.ForeignKey('Usuario', on_delete=models.PROTECT, null=True, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    data = models.DateTimeField(default=timezone.now)
+
+    # Comanda pai (somente um nível permitido)
+    comanda_pai = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='comandas_filhas'
+    )
+
+    @property
+    def is_principal(self):
+        return self.comanda_pai is None
+
+    def clean(self):
+        if self.comanda_pai and self.comanda_pai.comanda_pai:
+            raise ValidationError("Uma comanda filha não pode ser pai de outra comanda.")
+
+        if not self.comanda_pai:
+        # Se for comanda principal, o código precisa ser único
+            if Pedido.objects.filter(codigo_acesso=self.codigo_acesso).exclude(pk=self.pk).exists():
+             raise ValidationError("Já existe uma comanda principal com esse código.")
 
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+
+        if self.pk:
+        # Se já existe, não altera o código
+         original = Pedido.objects.get(pk=self.pk)
+         self.codigo_acesso = original.codigo_acesso
+        else:
+            if self.comanda_pai:
+                self.codigo_acesso = self.comanda_pai.codigo_acesso
+            else:
+             self.codigo_acesso = gerar_codigo_acesso_unico()
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Pedido #{self.id} - Código: {self.codigo_acesso}"
+    
 class PedidoUsuario(models.Model):
     pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
@@ -123,16 +206,14 @@ class PedidoUsuario(models.Model):
     class Meta:
         unique_together = ('pedido', 'usuario')
 
-
 class PedidoItem(models.Model):
-    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE)
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='itens')    
     prato = models.ForeignKey(Prato, on_delete=models.PROTECT)
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, null=True, blank=True)
     quantidade = models.IntegerField()
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     observacao = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
-
 
 # ----------------------------
 # PAGAMENTOS
@@ -145,7 +226,6 @@ class Pagamento(models.Model):
     metodo_pagamento = models.CharField(max_length=20, choices=MetodoPagamento.choices)
     status = models.CharField(max_length=20, choices=PagamentoStatus.choices, default=PagamentoStatus.PENDENTE)
     pago_em = models.DateTimeField(default=timezone.now)
-
 
 # ----------------------------
 # AUDITORIA

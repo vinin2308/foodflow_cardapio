@@ -1,0 +1,154 @@
+<div class="gerente-pratos">
+  <header class="header">
+    <div class="header-content">
+      <h1>🍽️ FoodFlow - Gerente</h1>
+      <button class="btn-logout" (click)="logout()">🚪 Sair</button>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <a routerLink="/gerente/home">🏠 Início</a>
+    <a routerLink="/gerente/pratos" routerLinkActive="active">🍕 Pratos</a>
+    <a routerLink="/gerente/categorias">📂 Categorias</a>
+  </nav>
+
+  <main class="content">
+    <div class="page-header">
+      <h2>Gerenciar Pratos</h2>
+      <button class="btn-primary" (click)="abrirModal()">+ Novo Prato</button>
+    </div>
+
+    <div class="loading" *ngIf="carregando">
+      Carregando pratos...
+    </div>
+
+    <div class="pratos-lista" *ngIf="!carregando">
+      <div class="prato-item" *ngFor="let prato of pratos">
+        <div class="prato-imagem">
+          <img [src]="prato.imagem || 'assets/images/placeholder.jpg'" [alt]="prato.nome" />
+        </div>
+        <div class="prato-info">
+          <h3>{{ prato.nome }}</h3>
+          <p class="descricao">{{ prato.descricao }}</p>
+          <div class="meta">
+            <span class="categoria">📂 {{ prato.categoria_nome }}</span>
+            <span class="preco">💰 R$ {{ prato.preco }}</span>
+            <span class="status" [class.ativo]="prato.ativo" [class.inativo]="!prato.ativo">
+              {{ prato.ativo ? '✅ Ativo' : '❌ Inativo' }}
+            </span>
+          </div>
+        </div>
+        <div class="prato-acoes">
+          <button class="btn-icon" (click)="abrirModal(prato)" title="Editar">✏️</button>
+          <button class="btn-icon" (click)="togglePratoAtivo(prato)" [title]="prato.ativo ? 'Desabilitar' : 'Habilitar'">
+            {{ prato.ativo ? '🔴' : '🟢' }}
+          </button>
+          <button class="btn-icon" (click)="deletarPrato(prato.id!)" title="Deletar">🗑️</button>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="pratos.length === 0">
+        <p>Nenhum prato cadastrado</p>
+        <button class="btn-primary" (click)="abrirModal()">Adicionar Primeiro Prato</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div class="modal-overlay" *ngIf="mostrarModal" (click)="fecharModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ editando ? 'Editar Prato' : 'Novo Prato' }}</h3>
+        <button class="btn-close" (click)="fecharModal()">✕</button>
+      </div>
+      
+      <form (ngSubmit)="salvarPrato()" class="modal-body">
+        <div class="form-group">
+          <label for="nome">Nome *</label>
+          <input
+            type="text"
+            id="nome"
+            [(ngModel)]="pratoAtual.nome"
+            name="nome"
+            placeholder="Nome do prato"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="descricao">Descrição</label>
+          <textarea
+            id="descricao"
+            [(ngModel)]="pratoAtual.descricao"
+            name="descricao"
+            placeholder="Descrição do prato"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="preco">Preço *</label>
+            <input
+              type="number"
+              id="preco"
+              [(ngModel)]="pratoAtual.preco"
+              name="preco"
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="categoria">Categoria *</label>
+            <select
+              id="categoria"
+              [(ngModel)]="pratoAtual.categoria"
+              name="categoria"
+              required
+            >
+              <option *ngFor="let cat of categorias" [value]="cat.id">
+                {{ cat.nome }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="imagem">Imagem</label>
+          <input
+            type="file"
+            id="imagem"
+            (change)="onFileSelected($event)"
+            accept="image/*"
+          />
+          <div class="imagem-preview" *ngIf="imagemPreview">
+            <img [src]="imagemPreview" alt="Preview" />
+          </div>
+        </div>
+
+        <div class="form-group checkbox">
+          <label>
+            <input
+              type="checkbox"
+              [(ngModel)]="pratoAtual.ativo"
+              name="ativo"
+            />
+            <span>Prato ativo</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="fecharModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary">
+            {{ editando ? 'Atualizar' : 'Criar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

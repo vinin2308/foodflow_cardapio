@@ -1,72 +1,80 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Necessário para *ngIf e *ngFor
-import { FormsModule } from '@angular/forms';   // Necessário para o [(ngModel)] da busca
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ApiService } from '../services/api.service';
 
-// ... interfaces (Mesa, ItemPedido) continuam iguais ...
-interface ItemPedido {
-  nome: string;
+export interface ItemPedido {
+  id: number;
+  prato_nome: string;
   quantidade: number;
-  preco: number;
+  preco_unitario: number;
+  observacao: string;
 }
 
-interface Mesa {
+export interface Pedido {
+  id: number;
+  codigo_acesso: string;
+  status: string;
+  itens: ItemPedido[];
+  criado_por_nome: string;
+}
+
+export interface Mesa {
   id: number;
   numero: number;
-  status: 'pendente' | 'efetuado' | 'liberada' | 'aguardando';
-  valorTotal: number;
-  itens: ItemPedido[];
-  garcom: string;
-  tempo: string;
+  status: 'disponivel' | 'ocupada' | 'reservada';
+  valor_total_mesa: number;
+  pedidos: Pedido[];
+  garcom?: string;
+  solicitou_atencao: boolean; // Importante para o alerta amarelo
 }
 
 @Component({
   selector: 'app-garcom',
-  standalone: true, // <--- ISSO É IMPORTANTE
-  imports: [CommonModule, FormsModule], // <--- AQUI VOCÊ IMPORTA OS MÓDULOS
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './garcom.html',
   styleUrls: ['./garcom.scss']
 })
-export class GarcomComponent implements OnInit {
+export class GarcomComponent implements OnInit, OnDestroy {
   
   termoBusca: string = '';
   filtroStatus: string = 'todos';
   mesaSelecionada: Mesa | null = null;
-
-  // Dados Mockados (Exemplo baseado na imagem)
-  mesas: Mesa[] = [
-    {
-      id: 1, numero: 1, status: 'pendente', valorTotal: 58.90, garcom: 'João', tempo: '45 min',
-      itens: [{ nome: 'X-Burger', quantidade: 1, preco: 25.00 }, { nome: 'Coca-Cola', quantidade: 2, preco: 16.95 }]
-    },
-    {
-      id: 2, numero: 2, status: 'efetuado', valorTotal: 102.00, garcom: 'Maria', tempo: '1h 10min',
-      itens: [{ nome: 'Picanha Chapa', quantidade: 1, preco: 85.00 }, { nome: 'Suco Natural', quantidade: 2, preco: 17.00 }]
-    },
-    {
-      id: 3, numero: 3, status: 'liberada', valorTotal: 0.00, garcom: '-', tempo: '-',
-      itens: []
-    },
-    {
-      id: 4, numero: 4, status: 'aguardando', valorTotal: 15.00, garcom: 'Pedro', tempo: '5 min',
-      itens: [{ nome: 'Cerveja Artesanal', quantidade: 1, preco: 15.00 }]
-    }
-  ];
-
+  mesas: Mesa[] = [];
   mesasFiltradas: Mesa[] = [];
+  private pollingInterval: any;
 
-  constructor() { }
+  constructor(private apiService: ApiService) { }
 
   ngOnInit(): void {
-    this.atualizarLista();
+    this.carregarDados();
+    this.pollingInterval = setInterval(() => this.carregarDados(), 5000);
   }
 
-  // Lógica de Busca e Filtro
+  ngOnDestroy(): void {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+  }
+
+  carregarDados(): void {
+    this.apiService.listarMesas().subscribe({
+      next: (dados: any[]) => {
+        this.mesas = dados as Mesa[]; 
+        this.atualizarLista();
+        if (this.mesaSelecionada) {
+          const atualizada = this.mesas.find(m => m.id === this.mesaSelecionada?.id);
+          if (atualizada) this.mesaSelecionada = atualizada;
+        }
+      },
+      error: (err) => console.error('Erro ao buscar mesas:', err)
+    });
+  }
+
   atualizarLista(): void {
     this.mesasFiltradas = this.mesas.filter(mesa => {
       const matchStatus = this.filtroStatus === 'todos' || mesa.status === this.filtroStatus;
-      const matchBusca = mesa.numero.toString().includes(this.termoBusca) || 
-                         mesa.garcom.toLowerCase().includes(this.termoBusca.toLowerCase());
-      return matchStatus && matchBusca;
+      const numeroStr = mesa.numero ? mesa.numero.toString() : ''; 
+      return matchStatus && numeroStr.includes(this.termoBusca);
     });
   }
 
@@ -75,54 +83,72 @@ export class GarcomComponent implements OnInit {
     this.atualizarLista();
   }
 
-  // Controle do Modal/Drawer
-  abrirDetalhes(mesa: Mesa): void {
-    this.mesaSelecionada = mesa;
+  abrirDetalhes(mesa: Mesa): void { this.mesaSelecionada = mesa; }
+  fecharDetalhes(): void { this.mesaSelecionada = null; }
+
+  // --- AÇÕES ---
+
+  atenderChamado(): void {
+    if (!this.mesaSelecionada) return;
+    this.apiService.atenderChamado(this.mesaSelecionada.id).subscribe(() => {
+      this.carregarDados();
+      this.fecharDetalhes(); // Fecha o modal após atender
+    });
   }
 
-  fecharDetalhes(): void {
-    this.mesaSelecionada = null;
-  }
-
-  // Ações dos Botões (Placeholders)
-  adicionarItem(): void {
-    console.log('Adicionar item na mesa', this.mesaSelecionada?.numero);
-  }
-
-  confirmarPagamento(): void {
-    if(this.mesaSelecionada) {
-      this.mesaSelecionada.status = 'efetuado';
-      this.atualizarLista();
-    }
+  confirmarEntrega(pedido: Pedido): void {
+    this.apiService.confirmarEntrega(pedido.id).subscribe(() => {
+      alert(`Pedido #${pedido.id} entregue!`);
+      this.carregarDados();
+    });
   }
 
   liberarMesa(): void {
-    if(this.mesaSelecionada) {
-      this.mesaSelecionada.status = 'liberada';
-      this.mesaSelecionada.valorTotal = 0;
-      this.mesaSelecionada.itens = [];
-      this.atualizarLista();
-      this.fecharDetalhes();
+    if (this.mesaSelecionada && confirm(`Liberar Mesa ${this.mesaSelecionada.numero}?`)) {
+      this.apiService.liberarMesa(this.mesaSelecionada.id).subscribe(() => {
+        this.carregarDados();
+        this.fecharDetalhes();
+      });
     }
   }
-  
-  // Helper para classes CSS
+
+  // Apenas para teste (Botão Cinza)
+  simularChamado(): void {
+    if (!this.mesaSelecionada) return;
+    this.apiService.chamarGarcom(this.mesaSelecionada.id).subscribe(() => {
+      alert('Chamado simulado! Veja o card laranja.');
+      this.carregarDados();
+    });
+  }
+
+  // --- HELPERS VISUAIS ---
+
+  temPedidoPronto(mesa: Mesa): boolean {
+    return mesa.pedidos ? mesa.pedidos.some(p => p.status === 'pronto') : false;
+  }
+
+  getPedidosProntos(mesa: Mesa): Pedido[] {
+    return mesa.pedidos ? mesa.pedidos.filter(p => p.status === 'pronto') : [];
+  }
+
+  getItensDaMesa(mesa: Mesa): ItemPedido[] {
+    if (!mesa.pedidos) return [];
+    return mesa.pedidos.flatMap(pedido => pedido.itens);
+  }
+
   getStatusClass(status: string): string {
     switch(status) {
-      case 'pendente': return 'bg-dark-red';
-      case 'efetuado': return 'bg-green'; // Usando verde conforme pedido no texto
-      case 'liberada': return 'bg-golden';
-      case 'aguardando': return 'bg-blue';
+      case 'ocupada': return 'bg-dark-red';
+      case 'disponivel': return 'bg-green';
+      case 'reservada': return 'bg-golden';
       default: return 'bg-gray';
     }
   }
   
   getStatusLabel(status: string): string {
     switch(status) {
-      case 'pendente': return 'Pagamento pendente';
-      case 'efetuado': return 'Efetuado';
-      case 'liberada': return 'Mesa liberada';
-      case 'aguardando': return 'Confirmar pedido';
+      case 'ocupada': return 'Ocupada';
+      case 'disponivel': return 'Livre';
       default: return status;
     }
   }

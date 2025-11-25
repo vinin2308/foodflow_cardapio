@@ -15,6 +15,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  gap: 8px; // Espaço entre código e carrinho
 }
 
 .header-info h1 {
@@ -48,6 +49,25 @@
   border-radius: 20px;
   font-size: 0.9rem;
   font-weight: 500;
+}
+
+/* Código de acesso ao lado do carrinho */
+.codigo-acesso {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--wine-color);
+  background: var(--golden-yellow);
+  padding: 4px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+
+  strong {
+    margin-left: 4px;
+    color: var(--wine-color);
+  }
 }
 
 /* Botão do Carrinho */
@@ -304,5 +324,24 @@
   .item-descricao {
     font-size: 0.85rem;
   }
+  .comanda-vinculo {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 8px;
+  margin: 10px 0;
+  font-size: 0.95rem;
+  color: #856404;
+  border-radius: 4px;
+}
+.codigo-acesso.principal {
+  background: var(--golden-yellow);
+  color: var(--wine-color);
 }
 
+.codigo-acesso.vinculada {
+  background: #fff3cd;
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+
+}
