@@ -6,8 +6,6 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
@@ -133,30 +131,6 @@ class PratoGerenteViewSet(viewsets.ModelViewSet):
         return Prato.objects.all().order_by('-criado_em')
 
 # 🔔 Função para emitir eventos via WebSocket (quando cria/atualiza pedidos)
-def emitir_pedido_websocket(pedido):
-    channel_layer = get_channel_layer()
-    payload = {
-        'type': 'pedido_novo',
-        'pedido': {
-            'id': pedido.id,
-            'codigo_acesso': pedido.codigo_acesso,
-            'nome_cliente': pedido.nome_cliente,
-            'mesa': pedido.mesa.numero,
-            'status': pedido.status,
-            'itens': [
-                {
-                    'prato': item.prato.id,
-                    'quantidade': item.quantidade,
-                    'observacao': item.observacao,
-                    'usuario': item.usuario.username if item.usuario else None
-                } for item in pedido.itens.all()
-            ]
-        }
-    }
-    async_to_sync(channel_layer.group_send)(
-        f'comanda_{pedido.codigo_acesso}',
-        payload
-    )
 
 @api_view(['GET'])
 def pedido_por_codigo(request, codigo):

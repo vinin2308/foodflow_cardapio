@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from django.db import transaction
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.contrib.auth.password_validation import validate_password
 from .models import Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento, gerar_codigo_acesso_unico
 
@@ -268,10 +266,6 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
                 )
 
         return instance
-
-
-    
-
 
 
 # ----------------------------
