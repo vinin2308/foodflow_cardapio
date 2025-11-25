@@ -12,11 +12,16 @@ export interface OrderItem {
 
 export interface Order {
   id: number;
+  
+  // --- ADICIONEI ESTA LINHA PARA CORRIGIR O ERRO ---
+  mesa?: number;         
+  // -------------------------------------------------
+  
   mesa_numero: number;
   nome_cliente: string;
   status: OrderStatus;
-  tempo_estimado?: number;   // veio de `tempo_estimado`
+  tempo_estimado?: number;
   itens: OrderItem[];
   criado_em: string; 
-  codigo_acesso: string;          // mapeia `criado_em`
+  codigo_acesso: string;
 }

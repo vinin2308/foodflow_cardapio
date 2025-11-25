@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+// Mantendo o seu caminho (com 'enviroments' se for o caso)
 import { environment } from '../../enviroments/enviroment';
+
+// --- Interfaces ---
 export interface Prato {
   id: number;
   nome: string;
@@ -9,8 +12,18 @@ export interface Prato {
   preco: number;
 }
 
+export interface Mesa {
+  id: number;
+  numero: number;
+  status: 'disponivel' | 'ocupada' | 'reservada';
+  valor_total_mesa: number;
+  pedidos: any[]; 
+  garcom?: string;
+  solicitou_atencao: boolean; 
+}
+
 export interface PedidoItem {
-  prato: number;      // id do prato
+  prato: number;
   quantidade: number;
   observacao?: string;
 }
@@ -26,9 +39,11 @@ export interface Pedido {
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = environment.apiUrl;
+  private baseUrl = environment.apiUrl; 
 
   constructor(private http: HttpClient) {}
+
+  // --- MÉTODOS GERAIS ---
 
   listarPratos(): Observable<Prato[]> {
     return this.http.get<Prato[]>(`${this.baseUrl}/pratos/`);
@@ -38,7 +53,48 @@ export class ApiService {
     return this.http.post<Pedido>(`${this.baseUrl}/pedidos/`, pedido);
   }
 
+  iniciarComanda(pedido: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/iniciar-comanda/`, pedido);
+  }
+
   listarPedidosCozinha(): Observable<Pedido[]> {
     return this.http.get<Pedido[]>(`${this.baseUrl}/pedidos/cozinha/`);
+  }
+
+  // --- MÉTODOS DO GARÇOM ---
+
+  listarMesas(): Observable<Mesa[]> {
+    return this.http.get<Mesa[]>(`${this.baseUrl}/mesas/`);
+  }
+
+  adicionarItemMesa(mesaId: number, pratoId: number, quantidade: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mesas/${mesaId}/adicionar_item/`, {
+      prato_id: pratoId,
+      quantidade: quantidade
+    });
+  }
+
+  liberarMesa(mesaId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mesas/${mesaId}/liberar/`, {});
+  }
+
+  // --- ALERTAS E ENTREGA ---
+
+  chamarGarcom(mesaId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mesas/${mesaId}/chamar_garcom/`, {});
+  }
+
+  atenderChamado(mesaId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/mesas/${mesaId}/atender_chamado/`, {});
+  }
+
+  confirmarEntrega(pedidoId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/pedidos/${pedidoId}/entregar/`, {});
+  }
+
+  // --- ACOMPANHAMENTO (Faltava este!) ---
+  
+  consultarStatusPedido(codigo: string): Observable<any> {
+    return this.http.get(`${this.baseUrl}/pedido-por-codigo/${codigo}/`);
   }
 }

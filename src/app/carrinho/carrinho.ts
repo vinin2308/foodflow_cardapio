@@ -2,13 +2,14 @@ import { Component, Output, EventEmitter, OnInit, OnDestroy } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
-// Removido WebSocketService dos imports
+// IMPORTE O ROUTER PARA PODER MUDAR DE TELA
+import { Router } from '@angular/router'; 
+
 import { CarrinhoService } from '../services/carrinho.service';
 import { ComandaService } from '../services/comanda.service';
+import { ApiService } from '../services/api.service'; 
 import { ItemCardapio } from '../models/item-cardapio.model';
 import { Comanda } from '../models/comanda.model';
-
-const statusValido = ['pendente', 'enviada', 'preparando', 'pronta'];
 
 @Component({
   selector: 'app-carrinho',
@@ -27,41 +28,35 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
 
   constructor(
     private carrinhoService: CarrinhoService,
-    // Removido: private wsService: WebSocketService,
-    // Removido: private realtimeService (se ele depender de WS)
-    private comandaService: ComandaService
+    private comandaService: ComandaService,
+    private apiService: ApiService,
+    private router: Router // <--- INJETADO AQUI
   ) {}
 
   ngOnInit() {
-    // 1. Ouve mudanças na comanda
     this.comandaService.comanda$
       .pipe(takeUntil(this.destroy$))
       .subscribe(comanda => {
         this.comanda = comanda;
-
-        // ✅ LÓGICA NOVA: Recupera o nome do localStorage se estiver faltando
-        if (this.comanda) {
-          if (!this.comanda.nome_cliente) {
-            const nomeSalvo = localStorage.getItem('nome'); // 'nome' é a chave que você usou na Home
-            if (nomeSalvo) {
-              this.comanda.nome_cliente = nomeSalvo;
-            }
-          }
+        if (this.comanda && !this.comanda.nome_cliente) {
+            const nomeSalvo = localStorage.getItem('nome'); 
+            if (nomeSalvo) this.comanda.nome_cliente = nomeSalvo;
         }
       });
 
-    // 2. Carrega os pratos do cardápio para exibir nomes e preços corretos
     this.carrinhoService.pratosCardapio$
       .pipe(takeUntil(this.destroy$))
       .subscribe(pratos => {
         this.pratosCardapio = pratos;
       });
   }
-    onFechar() {
-      this.fechar.emit();
-    }
 
-    getNomePrato(item: { prato?: number; prato_nome?: string }): string {
+  onFechar() {
+    this.fechar.emit();
+  }
+
+  // ... (Métodos auxiliares getNomePrato, getStatusTexto, getPratoPorId, etc. continuam iguais) ...
+  getNomePrato(item: any): string {
     if (item.prato) {
       const pratoInfo = this.getPratoPorId(item.prato);
       return pratoInfo ? pratoInfo.nome : 'Prato desconhecido';
@@ -69,29 +64,21 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
     return item.prato_nome || 'Prato desconhecido';
   }
 
-    getStatusTexto(status: string): string {
-      const statusMap: { [key: string]: string } = {
-        'pendente': 'Pendente',
-        'enviada': 'Enviado',
-        'preparando': 'Preparando',
-        'pronta': 'Pronto'
-      };
-      return statusMap[status] || status;
-    }
+  getStatusTexto(status: string): string { return status; } // Simplificado
+  
+  getPratoPorId(id: number): ItemCardapio | undefined {
+    return this.pratosCardapio.find(p => p.id === id);
+  }
 
-    getPratoPorId(id: number): ItemCardapio | undefined {
-      return this.pratosCardapio.find(p => p.id === id);
-    }
+  formatarPreco(preco: number): string {
+    return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
 
-    formatarPreco(preco: number): string {
-      return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    calcularSubtotal(item: { prato?: number; prato_nome?: string; quantidade: number; observacao: string }): number {
+  calcularSubtotal(item: any): number {
     let preco = 0;
     if (item.prato) {
-      const pratoInfo = this.getPratoPorId(item.prato);
-      preco = pratoInfo ? pratoInfo.preco : 0;
+        const pratoInfo = this.getPratoPorId(item.prato);
+        preco = pratoInfo ? pratoInfo.preco : 0;
     }
     return preco * item.quantidade;
   }
@@ -105,21 +92,12 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
     }, 0);
   }
 
-
-
-    // =========================
-    // ALTERAÇÕES EM TEMPO REAL
-    // =========================
-    adicionarItem(pratoId: number, quantidade = 1, observacao = '') {
+  // ... (Métodos adicionarItem, diminuirQuantidade, removerItem, etc. continuam iguais) ...
+  adicionarItem(pratoId: number, quantidade = 1, observacao = '') {
     if (!this.comanda) return;
-    const itemExistente = this.comanda.itens.find(
-      i => i.prato === pratoId && i.observacao === observacao
-    );
-    if (itemExistente) {
-      itemExistente.quantidade += quantidade;
-    } else {
-      this.comanda.itens.push({ prato: pratoId, quantidade, observacao });
-    }
+    const itemExistente = this.comanda.itens.find(i => i.prato === pratoId && i.observacao === observacao);
+    if (itemExistente) itemExistente.quantidade += quantidade;
+    else this.comanda.itens.push({ prato: pratoId, quantidade, observacao });
     this.atualizarLocalmente();
   }
 
@@ -127,18 +105,25 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
     if (!this.comanda) return;
     const item = this.comanda.itens.find(i => i.prato === pratoId && i.observacao === observacao);
     if (item && item.quantidade > 1) {
-      item.quantidade--;
-      this.atualizarLocalmente();
+        item.quantidade--;
+        this.atualizarLocalmente();
     }
   }
 
   removerItem(pratoId: number, observacao = '') {
     if (!this.comanda) return;
-    if (confirm('Remover este item do carrinho?')) {
-      this.comanda.itens = this.comanda.itens.filter(
-        i => !(i.prato === pratoId && i.observacao === observacao)
-      );
-      this.atualizarLocalmente();
+    if (confirm('Remover este item?')) {
+        this.comanda.itens = this.comanda.itens.filter(i => !(i.prato === pratoId && i.observacao === observacao));
+        this.atualizarLocalmente();
+    }
+  }
+
+  atualizarObservacao(pratoId: number, novaObs: string) {
+    if (!this.comanda) return;
+    const item = this.comanda.itens.find(i => i.prato === pratoId);
+    if (item) {
+        item.observacao = novaObs;
+        this.atualizarLocalmente();
     }
   }
 
@@ -147,22 +132,11 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
     this.comandaService.setComanda(this.comanda);
   }
 
-    atualizarObservacao(pratoId: number, novaObs: string) {
-      if (!this.comanda) return;
-      const item = this.comanda.itens.find(i => i.prato === pratoId);
-      if (item) {
-        item.observacao = novaObs;
-        this.atualizarLocalmente();
-      }
-    }
-
-
-
-    // =========================
-    // CONFIRMAR PEDIDO
-    // =========================
-    confirmarPedido() {
-    // Validações básicas
+  // =========================
+  // CONFIRMAR PEDIDO (FINAL)
+  // =========================
+  confirmarPedido() {
+    // Validações
     if (!this.comanda || this.comanda.itens.length === 0) {
       alert('Carrinho vazio! Adicione itens antes de confirmar o pedido.');
       return;
@@ -176,11 +150,10 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
     if (confirm(`Confirmar pedido no valor de ${this.formatarPreco(this.calcularTotal())}?`)) {
       this.confirmandoPedido = true;
 
-      // ✅ CORREÇÃO AQUI: Incluindo os campos obrigatórios (mesa, nome_cliente, status)
+      // Payload formatado para o Django
       const payload = {
-        mesa: Number(this.comanda.mesa_numero), 
+        mesa: this.comanda.mesa_numero ? Number(this.comanda.mesa_numero) : 1, 
         nome_cliente: this.comanda.nome_cliente,
-        status: 'pendente', // Sempre envia como 'pendente' para a cozinha ver
         itens: this.comanda.itens.map(item => ({
           prato: item.prato,
           quantidade: item.quantidade,
@@ -188,40 +161,47 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
         }))
       };
 
-      this.carrinhoService.confirmarPedidoNoCozinha(payload).subscribe({
+      // Envia para a rota /iniciar-comanda/
+      this.apiService.iniciarComanda(payload).subscribe({
         next: (pedidoCriado) => {
           this.confirmandoPedido = false;
 
-          // Limpa o carrinho local após sucesso
+          // 1. Salvar código no navegador
+          localStorage.setItem('pedido_ativo', pedidoCriado.codigo_acesso);
+
+          // 2. Limpar carrinho local
           if (this.comanda) {
-            this.comanda.itens = []; // Esvazia a lista visualmente
-            this.comandaService.setComanda(this.comanda); // Salva vazio no localStorage
+            this.comanda.itens = []; 
+            this.comandaService.setComanda(this.comanda); 
           }
 
-          alert('Pedido enviado com sucesso! Aguarde a cozinha.');
-          this.onFechar();
+          // --- O PULO DO GATO ESTÁ AQUI ---
+          // Navega PRIMEIRO e só fecha o modal DEPOIS que a navegação começar.
+          // Isso impede que a tela pisque ou volte para a Home errado.
+          this.router.navigate(['/acompanhar']).then(() => {
+             this.onFechar(); 
+          });
         },
         error: (err: any) => {
           this.confirmandoPedido = false;
-          console.error('Erro ao enviar pedido:', err);
+          console.error('Erro ao enviar:', err);
           alert('Erro ao enviar o pedido. Tente novamente.');
         }
       });
     }
   }
 
-    get carrinhoVazio(): boolean {
-      return !this.comanda || this.comanda.itens.length === 0;
-    }
-
-    get quantidadeTotalItens(): number {
-      if (!this.comanda) return 0;
-      return this.comanda.itens.reduce((total, item) => total + item.quantidade, 0);
-    }
-
-    ngOnDestroy() {
-      this.destroy$.next();
-      this.destroy$.complete();
-    }
-
+  get carrinhoVazio(): boolean {
+    return !this.comanda || this.comanda.itens.length === 0;
   }
+
+  get quantidadeTotalItens(): number {
+    if (!this.comanda) return 0;
+    return this.comanda.itens.reduce((total, item) => total + item.quantidade, 0);
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+}

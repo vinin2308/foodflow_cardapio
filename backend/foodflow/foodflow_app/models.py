@@ -81,6 +81,11 @@ class Mesa(models.Model):
     capacidade = models.IntegerField()
     status = models.CharField(max_length=20, choices=[('disponivel', 'Disponível'), ('ocupada', 'Ocupada'), ('reservada', 'Reservada')])
     ativo = models.BooleanField(default=True)
+    
+    # --- NOVO CAMPO: ALERTA DE CHAMADO ---
+    solicitou_atencao = models.BooleanField(default=False)
+    # -------------------------------------
+
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -134,10 +139,10 @@ class Pedido(models.Model):
 
     # Código de acesso compartilhado entre comanda pai e filhas
     codigo_acesso = models.CharField(
-    max_length=6,
-    editable=False,
-    db_index=True  # ainda otimiza buscas
-)
+        max_length=6,
+        editable=False,
+        db_index=True  # ainda otimiza buscas
+    )
 
     mesa = models.ForeignKey('Mesa', on_delete=models.PROTECT)
     nome_cliente = models.CharField(max_length=100, blank=True, null=True)
