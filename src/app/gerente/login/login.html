@@ -1,0 +1,49 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="logo">
+      <h1>🍽️ FoodFlow</h1>
+      <p>Painel do Gerente</p>
+    </div>
+
+    <form (ngSubmit)="login()" class="login-form">
+      <div class="form-group">
+        <label for="username">Usuário</label>
+        <input
+          type="text"
+          id="username"
+          [(ngModel)]="username"
+          name="username"
+          placeholder="Digite seu usuário"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <input
+          type="password"
+          id="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Digite sua senha"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="erro" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="carregando">
+        {{ carregando ? 'Entrando...' : 'Entrar' }}
+      </button>
+
+      <div class="links">
+        <a routerLink="/gerente/esqueceu-senha">Esqueceu a senha?</a>
+        <a routerLink="/gerente/cadastro">Criar conta</a>
+      </div>
+    </form>
+  </div>
+</div>

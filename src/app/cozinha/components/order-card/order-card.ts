@@ -1,8 +1,6 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Order, OrderStatus } from '../../../models/ordel.model';
-import { ItemCardapio } from '../../../models/item-cardapio.model';
-import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-order-card',
@@ -13,7 +11,8 @@ import { ChangeDetectorRef } from '@angular/core';
 })
 export class OrderCardComponent implements OnInit, OnDestroy {
   @Input() order!: Order;
-  @Input() pratosCardapio: ItemCardapio[] = [];
+  // ❌ Removido: @Input() pratosCardapio (não precisa mais)
+  
   @Output() startPreparation = new EventEmitter<number>();
   @Output() finishOrder = new EventEmitter<number>();
   @Output() removeOrder = new EventEmitter<number>();
@@ -24,12 +23,12 @@ export class OrderCardComponent implements OnInit, OnDestroy {
   constructor(private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-  if (this.order.status === OrderStatus.PREPARING) {
-    this.updateInterval = setInterval(() => {
-      this.cdr.detectChanges(); // força atualização do template
-    }, 1000);
+    if (this.order.status === OrderStatus.PREPARING) {
+      this.updateInterval = setInterval(() => {
+        this.cdr.detectChanges();
+      }, 1000);
+    }
   }
-}
 
   ngOnDestroy(): void {
     if (this.updateInterval) {
@@ -37,75 +36,39 @@ export class OrderCardComponent implements OnInit, OnDestroy {
     }
   }
 
-  getCardClass(): string {
-  return this.order.status; 
-}
-
-  getStatusClass(): string {
-    return `status-${this.order.status}`;
-  }
+  getCardClass(): string { return this.order.status; }
+  getStatusClass(): string { return `status-${this.order.status}`; }
 
   getStatusText(): string {
-    switch (this.order.status) {
-      case OrderStatus.PENDING:
-        return 'Pendente';
-      case OrderStatus.PREPARING:
-        return 'Em Preparo';
-      case OrderStatus.READY:
-        return 'Pronto';
-      default:
-        return '';
-    }
+    const map = { [OrderStatus.PENDING]: 'Pendente', [OrderStatus.PREPARING]: 'Em Preparo', [OrderStatus.READY]: 'Pronto' };
+    return map[this.order.status] || this.order.status;
   }
 
+  // ✅ CORREÇÃO 1: Usar 'criado_em'
   getOrderTime(): string {
-    return new Date(this.order.data).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!this.order.criado_em) return '--:--';
+    return new Date(this.order.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   }
 
-  getNomePrato(prato_nome: number): string {
-    const prato = this.pratosCardapio.find(p => p.id === prato_nome);
-    return prato ? prato.nome : `Prato #${prato_nome}`;
-  }
-
+  // ✅ CORREÇÃO 2: Usar 'criado_em'
   getFormattedRemainingTime(): string {
-    if (!this.order.tempo_estimado || !this.order.data) return '';
-
-    const criadoEm = new Date(this.order.data).getTime();
+    if (!this.order.tempo_estimado || !this.order.criado_em) return '';
+    const criadoEm = new Date(this.order.criado_em).getTime();
     const prazoMs = this.order.tempo_estimado * 60 * 1000;
-    const expiracao = criadoEm + prazoMs;
-    const agora = Date.now();
-    const diff = Math.max(0, expiracao - agora);
-
+    const diff = Math.max(0, (criadoEm + prazoMs) - Date.now());
     const minutos = Math.floor(diff / 60000);
     const segundos = Math.floor((diff % 60000) / 1000);
-
     return `${minutos}m ${segundos}s`;
   }
 
+  // ✅ CORREÇÃO 3: Usar 'criado_em'
   isOvertime(): boolean {
-    if (!this.order.tempo_estimado || !this.order.data) return false;
-
-    const criadoEm = new Date(this.order.data).getTime();
-    const prazoMs = this.order.tempo_estimado * 60 * 1000;
-    return Date.now() > criadoEm + prazoMs;
+    if (!this.order.tempo_estimado || !this.order.criado_em) return false;
+    const criadoEm = new Date(this.order.criado_em).getTime();
+    return Date.now() > criadoEm + (this.order.tempo_estimado * 60 * 1000);
   }
 
-  getCountdownClass(): string {
-    return this.isOvertime() ? 'overdue' : '';
-  }
-
-  onStartPreparation(): void {
-    this.startPreparation.emit(this.order.id);
-  }
-
-  onFinishOrder(): void {
-    this.finishOrder.emit(this.order.id);
-  }
-
-  onRemoveOrder(): void {
-    this.removeOrder.emit(this.order.id);
-  }
+  onStartPreparation(): void { this.startPreparation.emit(this.order.id); }
+  onFinishOrder(): void { this.finishOrder.emit(this.order.id); }
+  onRemoveOrder(): void { this.removeOrder.emit(this.order.id); }
 }

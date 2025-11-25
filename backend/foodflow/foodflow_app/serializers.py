@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.db import transaction
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.contrib.auth.password_validation import validate_password
 from .models import Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento, gerar_codigo_acesso_unico
 
 # ----------------------------
@@ -13,6 +14,45 @@ class UsuarioSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = '__all__'
 
+# ----------------------------
+# AUTENTICAÇÃO DO GERENTE
+# ----------------------------
+
+class GerenteRegistroSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = Usuario
+        fields = ['username', 'email', 'password', 'password2', 'first_name', 'last_name']
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password": "As senhas não coincidem."})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password2')
+        user = Usuario.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            role='gerente'
+        )
+        return user
+
+class GerenteLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+class GerentePerfilSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'criado_em']
+        read_only_fields = ['id', 'role', 'criado_em']
+
 class MesaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mesa
@@ -21,14 +61,47 @@ class MesaSerializer(serializers.ModelSerializer):
 class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categoria
-        fields = ['id', 'nome', 'icone']
+        fields = ['id', 'nome', 'icone', 'ativo']
+
+# ----------------------------
+# GERENCIAMENTO DE CATEGORIAS (GERENTE)
+# ----------------------------
+
+class CategoriaGerenteSerializer(serializers.ModelSerializer):
+    criado_por = serializers.ReadOnlyField(source='criado_por.username')
+    
+    class Meta:
+        model = Categoria
+        fields = ['id', 'nome', 'icone', 'ativo', 'criado_por', 'criado_em', 'atualizado_em']
+        read_only_fields = ['criado_por', 'criado_em', 'atualizado_em']
+
+    def create(self, validated_data):
+        validated_data['criado_por'] = self.context['request'].user
+        return super().create(validated_data)
+
+# ----------------------------
+# GERENCIAMENTO DE PRATOS (GERENTE)
+# ----------------------------
+
+class PratoGerenteSerializer(serializers.ModelSerializer):
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
+    criado_por = serializers.ReadOnlyField(source='criado_por.username')
+    
+    class Meta:
+        model = Prato
+        fields = ['id', 'nome', 'descricao', 'preco', 'imagem', 'categoria', 'categoria_nome', 'ativo', 'criado_por', 'criado_em', 'atualizado_em']
+        read_only_fields = ['criado_por', 'criado_em', 'atualizado_em']
+
+    def create(self, validated_data):
+        validated_data['criado_por'] = self.context['request'].user
+        return super().create(validated_data)
 
 class PratoSerializer(serializers.ModelSerializer):
     categoria = CategoriaSerializer()
 
     class Meta:
         model = Prato
-        fields = ['id', 'nome', 'descricao', 'preco', 'categoria']
+        fields = ['id', 'nome', 'descricao', 'preco', 'categoria', 'imagem']
 
 # ----------------------------
 # PEDIDO ITEM
@@ -57,7 +130,7 @@ class PedidoItemWriteSerializer(serializers.ModelSerializer):
 # PEDIDO
 # ----------------------------
 class PedidoReadSerializer(serializers.ModelSerializer):
-    itens = serializers.SerializerMethodField()  # Mudança aqui
+    itens = serializers.SerializerMethodField()
     mesa_numero = serializers.SerializerMethodField()
     comanda_pai_id = serializers.SerializerMethodField()
     eh_principal = serializers.SerializerMethodField()
@@ -70,10 +143,12 @@ class PedidoReadSerializer(serializers.ModelSerializer):
             'itens',
             'mesa_numero',
             'comanda_pai_id',
-            'eh_principal'
+            'eh_principal',
+            'status',  
+            'nome_cliente', 
+            'criado_em'     
         ]
         read_only_fields = ['codigo_acesso']
-
     def get_itens(self, obj):
         # Força a avaliação da QuerySet antes de serializar
         itens_queryset = obj.itens.all()
@@ -89,6 +164,11 @@ class PedidoReadSerializer(serializers.ModelSerializer):
         return obj.comanda_pai is None
 
 
+class PedidoItemWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PedidoItem
+        fields = ['prato', 'quantidade', 'observacao']
+
 class PedidoWriteSerializer(serializers.ModelSerializer):
     codigo_acesso = serializers.CharField(required=False, allow_blank=True)
     itens = PedidoItemWriteSerializer(many=True, required=False)
@@ -100,7 +180,7 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pedido
-        fields = ['mesa', 'nome_cliente', 'status', 'tempo_estimado', 'itens', 'comanda_pai', 'codigo_acesso']
+        fields = ['mesa', 'nome_cliente', 'status', 'itens', 'comanda_pai', 'codigo_acesso']
         extra_kwargs = {
             'mesa': {'required': False}
         }
@@ -119,11 +199,10 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
                 if Pedido.objects.filter(codigo_acesso=codigo, comanda_pai__isnull=True).exclude(id=pedido_id).exists():
                     raise serializers.ValidationError("Já existe uma comanda principal com esse código.")
 
-
-
         # Validação dos itens
         itens = data.get('itens', [])
         for item in itens:
+            # item['prato'] já é um objeto aqui, então verificamos se ele existe (se não for None)
             if 'prato' not in item or 'quantidade' not in item:
                 raise serializers.ValidationError("Cada item deve ter 'prato' e 'quantidade'.")
             if not isinstance(item['quantidade'], int) or item['quantidade'] <= 0:
@@ -148,41 +227,19 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
             pedido = Pedido.objects.create(**validated_data)
 
             for item in itens_data:
-                try:
-                    prato_obj = Prato.objects.get(id=item['prato'])
-                except Prato.DoesNotExist:
-                    raise serializers.ValidationError(f"Prato com ID {item['prato']} não encontrado.")
-
+                # CORREÇÃO PRINCIPAL AQUI:
+                # item['prato'] já é a INSTÂNCIA do objeto Prato. Não use Prato.objects.get(id=...).
+                
                 PedidoItem.objects.create(
                     pedido=pedido,
-                    prato=prato_obj,
+                    prato=item['prato'],  # Passa o objeto direto
                     usuario=usuario,
                     quantidade=item['quantidade'],
                     observacao=item.get('observacao', ''),
-                    preco_unitario=prato_obj.preco
+                    preco_unitario=item['prato'].preco # Acessa o preço direto do objeto
                 )
-
-            # Emitir via WebSocket
-            channel_layer = get_channel_layer()
-            payload = {
-                'type': 'pedido_novo',
-                'pedido': {
-                    'id': pedido.id,
-                    'codigo_acesso': pedido.codigo_acesso,
-                    'nome_cliente': pedido.nome_cliente,
-                    'mesa': getattr(pedido.mesa, 'numero', None),
-                    'status': pedido.status,
-                    'itens': [
-                        {
-                            'prato': i.prato.id,
-                            'quantidade': i.quantidade,
-                            'observacao': i.observacao,
-                            'usuario': i.usuario.username if i.usuario else None
-                        } for i in pedido.itens.all()
-                    ]
-                }
-            }
-            async_to_sync(channel_layer.group_send)(f'comanda_{pedido.codigo_acesso}', payload)
+            
+            # WebSocket removido conforme solicitado
 
         return pedido
 
@@ -196,6 +253,9 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
         instance.save()
 
         if itens_data is not None:
+            # Atenção: Isso apaga todos os itens antigos e recria.
+            # Idealmente, para atualização parcial, a lógica seria mais complexa,
+            # mas para confirmar pedido da cozinha (que geralmente cria), isso é menos usado.
             instance.itens.all().delete()
             for item in itens_data:
                 PedidoItem.objects.create(

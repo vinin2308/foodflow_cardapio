@@ -1,0 +1,100 @@
+<div class="cadastro-container">
+  <div class="cadastro-card">
+    <div class="logo">
+      <h1>🍽️ FoodFlow</h1>
+      <p>Criar Conta de Gerente</p>
+    </div>
+
+    <form (ngSubmit)="cadastrar()" class="cadastro-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first_name">Nome</label>
+          <input
+            type="text"
+            id="first_name"
+            [(ngModel)]="first_name"
+            name="first_name"
+            placeholder="Seu nome"
+            [disabled]="carregando"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="last_name">Sobrenome</label>
+          <input
+            type="text"
+            id="last_name"
+            [(ngModel)]="last_name"
+            name="last_name"
+            placeholder="Seu sobrenome"
+            [disabled]="carregando"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="username">Usuário *</label>
+        <input
+          type="text"
+          id="username"
+          [(ngModel)]="username"
+          name="username"
+          placeholder="Escolha um nome de usuário"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email *</label>
+        <input
+          type="email"
+          id="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="seu@email.com"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha *</label>
+        <input
+          type="password"
+          id="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Crie uma senha forte"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password2">Confirmar Senha *</label>
+        <input
+          type="password"
+          id="password2"
+          [(ngModel)]="password2"
+          name="password2"
+          placeholder="Digite a senha novamente"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="erro" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="carregando">
+        {{ carregando ? 'Criando conta...' : 'Criar Conta' }}
+      </button>
+
+      <div class="links">
+        <a routerLink="/gerente/login">Já tem uma conta? Entrar</a>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,100 +1,113 @@
-  <div class="cardapio-container">
-    <!-- Header -->
-    <header class="cardapio-header">
-      <div class="header-info">
-        <h1>FoodFlow</h1>
-        <div class="mesa-info">
-          <span class="mesa">Mesa {{ mesa }}</span>
-          <span class="cliente" *ngIf="nomeCliente">{{ nomeCliente }}</span>
-        </div>
+<div class="cardapio-container">
+  
+  <!-- 1. HEADER (Exibe Mesa e Nome do Cliente salvos) -->
+  <header class="cardapio-header">
+    <div class="header-info">
+      <h1>FoodFlow</h1>
+      <div class="mesa-info">
+        <span class="mesa">Mesa {{ mesa }}</span>
+        <!-- Se o nomeCliente estiver preenchido no TS, ele aparece aqui -->
+        <span class="cliente" *ngIf="nomeCliente">👤 {{ nomeCliente }}</span>
       </div>
-      
-      <!-- Código da Comanda -->
-  <div class="comanda-info" *ngIf="comanda">
-    <span class="codigo-acesso">
-      <ng-container *ngIf="comanda.eh_principal; else comandaFilha">
-        Comanda principal • Código: <strong>{{ codigoAcesso }}</strong>
-      </ng-container>
-      <ng-template #comandaFilha>
-        Comanda vinculada • Código: <strong>{{ codigoAcesso }}</strong>
-      </ng-template>
-    </span>
-  </div>
+    </div>
+    
+    <!-- Informações da Comanda (Código) -->
+    <div class="comanda-info" *ngIf="comanda">
+      <span class="codigo-acesso">
+        <ng-container *ngIf="comanda.eh_principal; else comandaFilha">
+          Comanda Princ. • <strong>{{ codigoAcesso }}</strong>
+        </ng-container>
+        <ng-template #comandaFilha>
+          Comanda Vinc. • <strong>{{ codigoAcesso }}</strong>
+        </ng-template>
+      </span>
+    </div>
 
+    <!-- Botão do Carrinho -->
+    <button class="carrinho-btn" (click)="toggleCarrinho()" id="abrir-carrinho">
+      🛒
+      <span class="badge" *ngIf="quantidadeTotalItens > 0">{{ quantidadeTotalItens }}</span>
+    </button>
+  </header> 
 
-      <!-- Botão do Carrinho -->
-      <button class="carrinho-btn" (click)="toggleCarrinho()" id="abrir-carrinho">
-        🛒
-        <span class="badge" *ngIf="quantidadeTotalItens > 0">{{ quantidadeTotalItens }}</span>
-      </button>
-    </header>
+  <!-- 2. NAVEGAÇÃO DE CATEGORIAS -->
+  <nav class="categorias-nav">
+    <button 
+      *ngFor="let categoria of categorias"
+      class="categoria-btn"
+      [class.ativa]="categoriaAtiva?.id === categoria.id"
+      (click)="selecionarCategoria(categoria)"
+      [attr.id]="'categoria-' + categoria.id"
+    >
+      <span class="icone">{{ categoria.icone }}</span>
+      <span class="nome">{{ categoria.nome }}</span>
+    </button>
+  </nav>
 
-    <!-- Navegação de Categorias -->
-    <nav class="categorias-nav">
-      <button 
-        *ngFor="let categoria of categorias"
-        class="categoria-btn"
-        [class.ativa]="categoriaAtiva?.id === categoria.id"
-        (click)="selecionarCategoria(categoria)"
-        [attr.id]="'categoria-' + categoria.id"
-      >
-        <span class="icone">{{ categoria.icone }}</span>
-        <span class="nome">{{ categoria.nome }}</span>
-      </button>
-    </nav>
+  <!-- 3. LISTA DE ITENS -->
+  <main class="cardapio-content">
+    <div class="categoria-section" *ngIf="categoriaAtiva">
+      <h2 class="categoria-titulo">
+        {{ categoriaAtiva.icone }} {{ categoriaAtiva.nome }}
+      </h2>
 
-    <!-- Lista de Itens -->
-    <main class="cardapio-content">
-      <div class="categoria-section" *ngIf="categoriaAtiva">
-        <h2 class="categoria-titulo">
-          {{ categoriaAtiva.icone }} {{ categoriaAtiva.nome }}
-        </h2>
-
-        <div class="itens-grid">
-          <div 
-            class="item-card" 
-            *ngFor="let item of getItensPorCategoria(categoriaAtiva)"
-          >
+      <div class="itens-grid">
+        <div 
+          class="item-card" 
+          *ngFor="let item of getItensPorCategoria(categoriaAtiva)"
+        >
+          <!-- WRAPPER: Agrupa Texto e Imagem para ficarem lado a lado -->
+          <div class="item-main-content" style="display: flex; justify-content: space-between; gap: 10px;">
+            
             <div class="item-info">
               <h3 class="item-nome">{{ item.nome }}</h3>
               <p class="item-descricao">{{ item.descricao }}</p>
               <span class="item-preco">{{ formatarPreco(item.preco) }}</span>
             </div>
 
-            <div class="item-actions">
-              <button 
-                class="btn-observacao" 
-                (click)="abrirModalObservacao(item)"
-                title="Adicionar observação"
-                [attr.id]="'adicionar-observacao-' + item.id"
-              >
-                ✏️
-              </button>
-              <button 
-                class="btn-adicionar" 
-                (click)="adicionarItem(item)"
-                [attr.id]="'adicionar-item-' + item.id"
-              >
-                + Adicionar
-              </button>
+            <!-- IMAGEM AQUI: Só aparece se existir no JSON -->
+            <div class="item-img-wrapper" *ngIf="item.imagem">
+               <img [src]="item.imagem" alt="{{ item.nome }}" class="produto-imagem">
             </div>
+
           </div>
+          
+          <!-- AÇÕES (Botões ficam embaixo) -->
+          <div class="item-actions">
+            <button 
+              class="btn-observacao" 
+              (click)="abrirModalObservacao(item)"
+              title="Adicionar observação"
+              [attr.id]="'adicionar-observacao-' + item.id"
+            >
+              ✏️
+            </button>
+            <button 
+              class="btn-adicionar" 
+              (click)="adicionarItem(item)"
+              [attr.id]="'adicionar-item-' + item.id"
+            >
+              + Adicionar
+            </button>
+          </div>
+
         </div>
       </div>
-    </main>
+    </div>
+  </main>
 
-    <!-- Componente do Carrinho -->
-    <app-carrinho 
-      *ngIf="carrinhoAberto"
-      
-      (fechar)="toggleCarrinho()"
-    ></app-carrinho>
+  <!-- 4. COMPONENTE CARRINHO (Sem Inputs extras necessários) -->
+  <!-- O Carrinho já se vira sozinho pegando os dados do Service/LocalStorage -->
+  <app-carrinho 
+    *ngIf="carrinhoAberto"
+    (fechar)="toggleCarrinho()"
+  ></app-carrinho>
 
-    <!-- Modal de Observação -->
-    <app-observacao-modal
-      *ngIf="mostrarModalObservacao"
-      [item]="itemSelecionadoParaObservacao"
-      (confirmar)="adicionarItemComObservacao($event)"
-      (cancelar)="fecharModalObservacao()"
-    ></app-observacao-modal>
-  </div>
+  <!-- Modal de Observação -->
+  <app-observacao-modal
+    *ngIf="mostrarModalObservacao"
+    [item]="itemSelecionadoParaObservacao"
+    (confirmar)="adicionarItemComObservacao($event)"
+    (cancelar)="fecharModalObservacao()"
+  ></app-observacao-modal>
+</div>

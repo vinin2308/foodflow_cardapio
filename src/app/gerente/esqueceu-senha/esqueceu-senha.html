@@ -1,0 +1,40 @@
+<div class="esqueceu-senha-container">
+  <div class="esqueceu-senha-card">
+    <div class="logo">
+      <h1>🔐</h1>
+      <h2>Recuperar Senha</h2>
+      <p>Digite seu email para receber instruções</p>
+    </div>
+
+    <form (ngSubmit)="recuperarSenha()" class="form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="seu@email.com"
+          [disabled]="carregando"
+          required
+        />
+      </div>
+
+      <div class="erro" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <div class="sucesso" *ngIf="sucesso">
+        {{ sucesso }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="carregando">
+        {{ carregando ? 'Enviando...' : 'Enviar Instruções' }}
+      </button>
+
+      <div class="links">
+        <a routerLink="/gerente/login">Voltar para o login</a>
+      </div>
+    </form>
+  </div>
+</div>

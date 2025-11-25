@@ -121,7 +121,8 @@ export class CarrinhoService {
   }
 
   confirmarPedidoNoCozinha(payload: PedidoPayload): Observable<any> {
-    return this.http.post(this.apiUrl, payload);
+    const urlCozinha = environment.apiUrl + '/cozinha/';
+    return this.http.post(urlCozinha, payload);
   }
 
   atualizarComandaParcial(id: number, payload: any): Observable<any> {

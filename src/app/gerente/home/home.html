@@ -1,0 +1,103 @@
+<div class="gerente-home">
+  <header class="header">
+    <div class="header-content">
+      <h1>🍽️ FoodFlow - Gerente</h1>
+      <div class="user-menu">
+        <button class="user-button" (click)="toggleMenu()">
+          <span>{{ user?.username }}</span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="dropdown" *ngIf="mostrarMenu">
+          <a routerLink="/gerente/perfil">👤 Meu Perfil</a>
+          <a (click)="logout()">🚪 Sair</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <a routerLink="/gerente/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+      🏠 Início
+    </a>
+    <a routerLink="/gerente/pratos" routerLinkActive="active">
+      🍕 Pratos
+    </a>
+    <a routerLink="/gerente/categorias" routerLinkActive="active">
+      📂 Categorias
+    </a>
+  </nav>
+
+  <main class="content">
+    <div class="welcome">
+      <h2>Bem-vindo, {{ user?.first_name || user?.username }}!</h2>
+      <p>Gerencie seu cardápio de forma simples e eficiente</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-icon">🍽️</div>
+        <div class="stat-info">
+          <h3>{{ pratos.length }}</h3>
+          <p>Total de Pratos</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <h3>{{ (pratos | filter: 'ativo': true).length }}</h3>
+          <p>Pratos Ativos</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">❌</div>
+        <div class="stat-info">
+          <h3>{{ (pratos | filter: 'ativo': false).length }}</h3>
+          <p>Pratos Inativos</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h3>Pratos Recentes</h3>
+        <a routerLink="/gerente/pratos" class="btn-secondary">Ver Todos</a>
+      </div>
+
+      <div class="loading" *ngIf="carregando">
+        Carregando pratos...
+      </div>
+
+      <div class="pratos-grid" *ngIf="!carregando && pratosVisiveis.length > 0">
+        <div class="prato-card" *ngFor="let prato of pratosVisiveis">
+          <div class="prato-imagem">
+            <img [src]="prato.imagem || 'assets/images/placeholder.jpg'" [alt]="prato.nome" />
+            <span class="badge" [class.ativo]="prato.ativo" [class.inativo]="!prato.ativo">
+              {{ prato.ativo ? 'Ativo' : 'Inativo' }}
+            </span>
+          </div>
+          <div class="prato-info">
+            <h4>{{ prato.nome }}</h4>
+            <p class="categoria">{{ prato.categoria_nome }}</p>
+            <p class="preco">R$ {{ prato.preco }}</p>
+            <div class="prato-acoes">
+              <button class="btn-icon" routerLink="/gerente/pratos" title="Editar">
+                ✏️
+              </button>
+              <button class="btn-icon" (click)="togglePratoAtivo(prato)" [title]="prato.ativo ? 'Desabilitar' : 'Habilitar'">
+                {{ prato.ativo ? '🔴' : '🟢' }}
+              </button>
+              <button class="btn-icon" (click)="deletarPrato(prato.id!)" title="Deletar">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty" *ngIf="!carregando && pratosVisiveis.length === 0">
+        <p>Nenhum prato cadastrado ainda</p>
+        <a routerLink="/gerente/pratos" class="btn-primary">Adicionar Primeiro Prato</a>
+      </div>
+    </div>
+  </main>
+</div>

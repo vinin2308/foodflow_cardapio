@@ -1,24 +1,19 @@
-// gerente.routes.ts
-
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/auth/login/login';
-import { RegisterComponent } from './components/auth/register/register';
-import { ForgotPasswordComponent } from './components/auth/forgot-password/forgot-password';
-import { HomeComponent } from './pages/home/home';
-import { DishesComponent } from './pages/dishes/dishes';
-import { CategoriesComponent } from './pages/categories/categories';
-import { MenuComponent } from './pages/menu/menu';
-import { StockComponent } from './pages/stock/stock';
-import { ReportsComponent } from './pages/reports/reports';
+import { GerenteLoginComponent } from './login/login';
+import { GerenteCadastroComponent } from './cadastro/cadastro';
+import { GerenteEsqueceuSenhaComponent } from './esqueceu-senha/esqueceu-senha';
+import { GerenteHomeComponent } from './home/home';
+import { GerentePratosComponent } from './pratos/pratos';
+import { GerenteCategoriasComponent } from './categorias/categorias';
+import { GerentePerfilComponent } from './perfil/perfil';
 
 export const gerenteRoutes: Routes = [
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'home', component: HomeComponent },
-  { path: 'dishes', component: DishesComponent },
-  { path: 'categories', component: CategoriesComponent },
-  { path: 'menu', component: MenuComponent },
-  { path: 'stock', component: StockComponent },
-  { path: 'reports', component: ReportsComponent },
+  { path: 'login', component: GerenteLoginComponent },
+  { path: 'cadastro', component: GerenteCadastroComponent },
+  { path: 'esqueceu-senha', component: GerenteEsqueceuSenhaComponent },
+  { path: 'home', component: GerenteHomeComponent },
+  { path: 'pratos', component: GerentePratosComponent },
+  { path: 'categorias', component: GerenteCategoriasComponent },
+  { path: 'perfil', component: GerentePerfilComponent },
+  { path: '', redirectTo: 'login', pathMatch: 'full' }
 ];
