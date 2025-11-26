@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: vininobre/foodflow-frontend:latest # <- troque pelo ECR
+          image: vininobre/frontend:latest # <- troque pelo ECR
           ports:
             - containerPort: 80

@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: vininobre/foodflow-backend:latest # <- troque pelo ECR
+          image: vininobre/backend:latest # <- troque pelo ECR
           command: ["gunicorn"]
           args: ["foodflow.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
           ports:

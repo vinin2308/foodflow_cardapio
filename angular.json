@@ -37,6 +37,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -55,17 +61,6 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
-            },
-            "docker": {
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.docker.ts"
-                }
-              ],
-              "optimization": true,
-              "outputHashing": "all",
-              "sourceMap": false
             }
           },
           "defaultConfiguration": "production"
@@ -78,9 +73,6 @@
             },
             "development": {
               "buildTarget": "foodflow:build:development"
-            },
-            "docker": {
-              "buildTarget": "foodflow:build:docker"
             }
           },
           "defaultConfiguration": "development"

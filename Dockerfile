@@ -1,33 +1,37 @@
-# Estágio 1: Build da Aplicação Angular
+# ----------------------------
+# Estágio 1: Build Angular
+# ----------------------------
 FROM node:20-alpine as builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./ 
-
-# 'npm ci' é mais rápido e seguro para CI/CD do que 'npm install'
-# Ele garante que as versões exatas do package-lock sejam usadas
+COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
 
-# Compila para produção.
-# CERTIFIQUE-SE que 'foodflow' é o nome do projeto no angular.json
-# Se for o nome da configuração de ambiente, ok. Se não, use '--configuration production'
+# Build Angular
 RUN npm run build -- --configuration production
 
-# Estágio 2: Servidor Web (Nginx)
+# ----------------------------
+# Estágio 2: Nginx
+# ----------------------------
 FROM nginx:alpine
 
-# Remove a página padrão do Nginx para evitar conflitos
+# Remove conteúdo default do Nginx
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copia os arquivos compilados do Angular
-# VERIFIQUE SE O CAMINHO '/dist/foodflow/browser' ESTÁ CERTO NO SEU angular.json
+# --- CORREÇÃO AQUI ---
+# Adicionamos '/browser' no final para pegar os arquivos certos.
+# Certifique-se que 'foodflow' é o nome exato da pasta gerada na dist.
 COPY --from=builder /app/dist/foodflow/browser /usr/share/nginx/html
 
-# Copia a configuração customizada do Nginx (essencial para Angular)
+# Copia a configuração customizada do Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Ajuste de permissões (segurança extra para evitar 403 por permissão)
+RUN chmod -R 755 /usr/share/nginx/html && \
+    chown -R nginx:nginx /usr/share/nginx/html
 
 EXPOSE 80
 

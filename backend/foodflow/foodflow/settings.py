@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = ['*']
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -157,10 +157,13 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'foodflow_app.Usuario'
 
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS', 
-    'http://localhost:4200,http://127.0.0.1:4200,http://localhost:8080,http://127.0.0.1:8080'
-).split(',')
+#CORS_ALLOWED_ORIGINS = os.environ.get(
+#    'CORS_ALLOWED_ORIGINS', 
+#    'http://localhost:4200,http://127.0.0.1:4200,http://localhost:8080,http://127.0.0.1:8080,http://54.94.65.113:30087'
+#).split(',')
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 # ✅ NOVO: CSRF TRUSTED ORIGINS (Obrigatório para POST/PUT/DELETE funcionarem)
 # O Django verifica o cabeçalho 'Origin' ou 'Referer'.
@@ -168,6 +171,6 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
-    # Se você for subir para AWS com IP direto, adicione o IP aqui também:
-    # 'http://54.94.65.113'
+    'http://54.94.65.113:30087',
+    'http://54.94.65.113:32000'
 ]

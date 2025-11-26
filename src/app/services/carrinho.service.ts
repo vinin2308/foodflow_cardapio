@@ -5,7 +5,7 @@ import { ItemCardapio } from '../models/item-cardapio.model';
 import { ComandaService } from './comanda.service';
 import { PedidoPayload } from '../models/pedidos.model';
 import { Comanda } from '../models/comanda.model';
-import { environment } from '../../enviroments/enviroment';
+import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class CarrinhoService {
   private pratosCardapioSubject = new BehaviorSubject<ItemCardapio[]>([]);
