@@ -1,7 +1,28 @@
+import base64
+import uuid
+from django.core.files.base import ContentFile
 from rest_framework import serializers
 from django.db import transaction
 from django.contrib.auth.password_validation import validate_password
 from .models import Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento, gerar_codigo_acesso_unico
+
+# ---------------------------------------------------------
+# [NOVO] CLASSE PARA DECODIFICAR IMAGEM BASE64 (Do Gerente)
+# ---------------------------------------------------------
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        # Verifica se é uma string Base64
+        if isinstance(data, str) and data.startswith('data:image'):
+            # Separa o cabeçalho (ex: "data:image/png;base64") do conteúdo
+            format, imgstr = data.split(';base64,') 
+            # Descobre a extensão (.png, .jpg)
+            ext = format.split('/')[-1] 
+            # Gera um nome único
+            id_arquivo = uuid.uuid4()
+            # Cria o arquivo na memória
+            data = ContentFile(base64.b64decode(imgstr), name=f"{id_arquivo}.{ext}")
+
+        return super().to_internal_value(data)
 
 # ----------------------------
 # SERIALIZERS BÁSICOS
@@ -52,7 +73,7 @@ class GerentePerfilSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'role', 'criado_em']
 
 # ----------------------------
-# PEDIDO ITEM (Definido antes para usar no MesaSerializer)
+# PEDIDO ITEM
 # ----------------------------
 
 class PedidoItemSerializer(serializers.ModelSerializer):
@@ -106,7 +127,7 @@ class PedidoReadSerializer(serializers.ModelSerializer):
         return obj.comanda_pai is None
 
 # ----------------------------
-# MESA (Atualizado para o Garçom)
+# MESA
 # ----------------------------
 
 class MesaSerializer(serializers.ModelSerializer):
@@ -115,16 +136,13 @@ class MesaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Mesa
-        # ADICIONADO: 'solicitou_atencao'
         fields = ['id', 'numero', 'status', 'capacidade', 'valor_total_mesa', 'pedidos', 'solicitou_atencao']
 
     def get_pedidos(self, obj):
-        # Retorna lista de pedidos ativos desta mesa (exclui pagos/cancelados)
         pedidos = Pedido.objects.filter(mesa=obj).exclude(status__in=['pago', 'cancelado'])
         return PedidoReadSerializer(pedidos, many=True).data
 
     def get_valor_total_mesa(self, obj):
-        # Soma todos os itens de todos os pedidos ativos da mesa
         pedidos = Pedido.objects.filter(mesa=obj).exclude(status__in=['pago', 'cancelado'])
         total = 0
         for pedido in pedidos:
@@ -156,6 +174,9 @@ class CategoriaGerenteSerializer(serializers.ModelSerializer):
 class PratoGerenteSerializer(serializers.ModelSerializer):
     categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
     criado_por = serializers.ReadOnlyField(source='criado_por.username')
+    
+    # [ALTERAÇÃO AQUI] Usando o campo personalizado para aceitar Base64
+    imagem = Base64ImageField(required=False, allow_null=True)
     
     class Meta:
         model = Prato

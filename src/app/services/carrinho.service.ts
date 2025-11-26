@@ -1,132 +1,94 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject } from 'rxjs';
 import { ItemCardapio } from '../models/item-cardapio.model';
 import { ComandaService } from './comanda.service';
-import { WebSocketService } from './websocket.service';
-import { PedidoPayload } from '../models/pedidos.model';
+import { ApiService } from './api.service';
 import { Comanda } from '../models/comanda.model';
-import { environment } from '../../enviroments/enviroment';
-@Injectable({ providedIn: 'root' })
+
+@Injectable({
+  providedIn: 'root'
+})
 export class CarrinhoService {
-  private pratosCardapioSubject = new BehaviorSubject<ItemCardapio[]>([]);
+  // --- [NOVO] CONTROLE VISUAL DO CARRINHO (SIDEBAR) ---
+  // Essas são as linhas que estão faltando no seu arquivo atual:
   private carrinhoAbertoSubject = new BehaviorSubject<boolean>(false);
-  private readonly apiUrl = environment.apiUrl + '/pedidos/';
+  carrinhoAberto$ = this.carrinhoAbertoSubject.asObservable();
+
+  private pratosCardapioSubject = new BehaviorSubject<ItemCardapio[]>([]);
+  pratosCardapio$ = this.pratosCardapioSubject.asObservable();
 
   constructor(
-    private http: HttpClient,
-    private wsService: WebSocketService,
-    private comandaService: ComandaService
+    private comandaService: ComandaService,
+    private apiService: ApiService
   ) {
-    this.carregarPratosCardapio();
+    this.carregarCardapio();
   }
 
-  get pratosCardapio$(): Observable<ItemCardapio[]> {
-    return this.pratosCardapioSubject.asObservable();
-  }
-
-  get carrinhoAberto$(): Observable<boolean> {
-    return this.carrinhoAbertoSubject.asObservable();
-  }
-
-  private carregarPratosCardapio(): void {
-    this.http.get<ItemCardapio[]>(`${this.apiUrl.replace('/pedidos/', '/pratos/')}`)
-      .subscribe(pratos => this.pratosCardapioSubject.next(pratos));
-  }
-
-  adicionarItem(item: ItemCardapio, quantidade: number = 1, observacao: string = ''): void {
-    const comanda = this.comandaService.comandaAtualValue;
-    if (!comanda) return console.warn('Comanda não inicializada.');
-
-    if (!Array.isArray(comanda.itens)) comanda.itens = [];
-
-    observacao = observacao || '';
-
-    // Procura item existente
-    const existente = comanda.itens.find(i => i.prato === item.id && (i.observacao || '') === observacao);
-    if (existente) {
-      existente.quantidade += quantidade;
-    } else {
-      comanda.itens.push({ prato: item.id, quantidade, observacao });
-    }
-
-    // Atualiza backend
-    if (comanda.id) {
-      this.atualizarComandaRealTime(comanda);
-    } else {
-      console.warn('Comanda ainda não criada no backend. Criando agora...');
-      this.comandaService.criarComanda({ mesa: comanda.mesa_numero, nome_cliente: comanda.nome_cliente })
-        .subscribe(novaComanda => {
-          this.comandaService.setComanda(novaComanda);
-          this.atualizarComandaRealTime(novaComanda);
-        });
-    }
-  }
-
-  removerItem(pratoId: number, observacao: string = ''): void {
-    const comanda = this.comandaService.comandaAtualValue;
-    if (!comanda) return;
-
-    observacao = observacao || '';
-    comanda.itens = comanda.itens.filter(i => !(i.prato === pratoId && (i.observacao || '') === observacao));
-
-    // Atualiza backend mesmo se ficar vazio
-    this.atualizarComandaRealTime(comanda);
-  }
-
-  atualizarQuantidade(pratoId: number, observacao: string, quantidade: number): void {
-    const comanda = this.comandaService.comandaAtualValue;
-    if (!comanda) return;
-
-    observacao = observacao || '';
-    const item = comanda.itens.find(i => i.prato === pratoId && (i.observacao || '') === observacao);
-    if (item) {
-      item.quantidade = quantidade;
-      if (item.quantidade <= 0) {
-        this.removerItem(pratoId, observacao);
-      } else {
-        this.atualizarComandaRealTime(comanda);
-      }
-    }
-  }
-
-  private atualizarComandaRealTime(comanda: Comanda) {
-    if (!comanda || !comanda.id) return;
-
-    const itensValidos = comanda.itens.map(i => ({
-      prato: Number(i.prato),
-      quantidade: i.quantidade,
-      observacao: i.observacao || ''
-    }));
-
-    // Sempre envia, mesmo que vazio
-    const payload = { itens: itensValidos };
-
-    this.comandaService.atualizarComandaParcial(comanda.id, payload).subscribe({
-      next: updated => this.wsService.enviarComandaAtualizada(updated),
-      error: err => console.error('Erro ao atualizar comanda no backend:', err)
-    });
-  }
-
-  toggleCarrinho(): void {
+  // Método para abrir/fechar o carrinho visualmente
+  // Esse método também está faltando no seu arquivo:
+  toggleCarrinho() {
     this.carrinhoAbertoSubject.next(!this.carrinhoAbertoSubject.value);
   }
 
-  abrirCarrinho(): void {
-    this.carrinhoAbertoSubject.next(true);
+  private carregarCardapio() {
+    this.apiService.listarPratos().subscribe(pratos => {
+      const itens: ItemCardapio[] = pratos.map((p: any) => ({
+        id: p.id,
+        nome: p.nome,
+        descricao: p.descricao,
+        preco: Number(p.preco),
+        imagem: p.imagem,
+        categoria: p.categoria_nome || 'Geral',
+        disponivel: p.ativo
+      }));
+      this.pratosCardapioSubject.next(itens);
+    });
   }
 
-  fecharCarrinho(): void {
-    this.carrinhoAbertoSubject.next(false);
+  adicionarItem(prato: ItemCardapio, quantidade: number = 1, observacao: string = '') {
+    let comandaAtual: Comanda | null = this.comandaService.comandaAtualValue;
+
+    if (!comandaAtual) {
+      const mesaId = localStorage.getItem('mesa-atual');
+      const nomeCliente = localStorage.getItem('nome');
+
+      if (!mesaId) {
+        alert('Erro: Nenhuma mesa selecionada. Volte para o início.');
+        return;
+      }
+
+      comandaAtual = {
+        id: 0, 
+        mesa_numero: Number(mesaId),
+        nome_cliente: nomeCliente || 'Cliente',
+        status: 'pendente',
+        itens: [],
+        criado_em: new Date().toISOString(),
+        codigo_acesso: ''
+      };
+    }
+
+    if (comandaAtual) {
+        const itemExistente = comandaAtual.itens.find(i => i.prato === prato.id && i.observacao === observacao);
+
+        if (itemExistente) {
+          itemExistente.quantidade += quantidade;
+        } else {
+          comandaAtual.itens.push({
+            prato: prato.id,
+            prato_nome: prato.nome,
+            quantidade: quantidade,
+            observacao: observacao
+          });
+        }
+
+        this.comandaService.setComanda(comandaAtual);
+        
+       
+    }
   }
 
-  confirmarPedidoNoCozinha(payload: PedidoPayload): Observable<any> {
-    const urlCozinha = environment.apiUrl + '/cozinha/';
-    return this.http.post(urlCozinha, payload);
-  }
-
-  atualizarComandaParcial(id: number, payload: any): Observable<any> {
-    return this.http.patch(`${this.apiUrl}${id}/`, payload);
+  getPratoPorId(id: number): ItemCardapio | undefined {
+    return this.pratosCardapioSubject.value.find(p => p.id === id);
   }
 }
-  
