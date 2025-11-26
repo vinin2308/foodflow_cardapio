@@ -1,12 +1,12 @@
-name: Deploy Full Stack (Back + Front + Migrate)
+name: Deploy Full Stack (Hash Version)
 
 on:
   push:
-    branches: [ "main" ] # Ou "master"
+    branches: [ "main" ]
 
 jobs:
   # ---------------------------------------------------
-  # JOB 1: BUILD DO BACKEND (DJANGO)
+  # JOB 1: BUILD DO BACKEND
   # ---------------------------------------------------
   build-backend:
     runs-on: ubuntu-latest
@@ -23,15 +23,14 @@ jobs:
     - name: Build e Push Backend
       uses: docker/build-push-action@v4
       with:
-        # ATENÇÃO: Se seu backend está numa subpasta, mude o context para './backend'
         context: ./backend/foodflow
-        # Se seu Dockerfile tem outro nome ou local, especifique aqui:
-        # file: ./backend/Dockerfile
         push: true
-        tags: vininobre/foodflow-backend:latest
+        tags: |
+          vininobre/foodflow-backend:latest
+          vininobre/foodflow-backend:${{ github.sha }}
 
   # ---------------------------------------------------
-  # JOB 2: BUILD DO FRONTEND (ANGULAR)
+  # JOB 2: BUILD DO FRONTEND
   # ---------------------------------------------------
   build-frontend:
     runs-on: ubuntu-latest
@@ -48,54 +47,55 @@ jobs:
     - name: Build e Push Frontend
       uses: docker/build-push-action@v4
       with:
-        # ATENÇÃO: Se seu frontend está numa subpasta, mude o context para './frontend'
-        context: . 
-        # file: ./frontend/Dockerfile
+        context: .
         push: true
-        tags: vininobre/foodflow-frontend:latest
+        tags: |
+          vininobre/foodflow-frontend:latest
+          vininobre/foodflow-frontend:${{ github.sha }}
 
   # ---------------------------------------------------
-  # JOB 3: DEPLOY NA AWS (Roda depois dos builds)
+  # JOB 3: DEPLOY NA AWS
   # ---------------------------------------------------
   deploy-to-aws:
-    needs: [build-backend, build-frontend] # Só roda se os dois acima derem certo
+    needs: [build-backend, build-frontend]
     runs-on: ubuntu-latest
     steps:
-    - name: Conectar na AWS e Atualizar Tudo
+    - name: Conectar na AWS e Atualizar
       uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.HOST_DNS }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          echo "🚀 --- INICIANDO DEPLOY COMPLETO ---"
+          echo "🚀 --- INICIANDO DEPLOY COM HASH ${{ github.sha }} ---"
 
+          # ----------------------------------
           # 1. ATUALIZAR BACKEND
-          echo "🔄 Reiniciando Backend..."
-          kubectl rollout restart deployment/backend
+          # ----------------------------------
+          echo "🔄 Atualizando imagem do Backend..."
+          # Sintaxe: deployment/NOME_DEPLOYMENT NOME_CONTAINER=IMAGEM
+          kubectl set image deployment/backend backend=vininobre/foodflow-backend:${{ github.sha }}
           
           echo "⏳ Aguardando Backend ficar 'Running'..."
           kubectl rollout status deployment/backend
 
-          # 2. RODAR MIGRATE & COLLECTSTATIC
-          # --- CORREÇÃO AQUI: Busca pelo NOME do pod, não pelo label ---
-          echo "🔍 Buscando pod do backend..."
-          POD_BACKEND=$(kubectl get pods --no-headers -o custom-columns=":metadata.name" | grep "^backend-" | head -n 1)
+          # ----------------------------------
+          # 2. RODAR MIGRATE (Seguro)
+          # ----------------------------------
+          echo "😴 Esperando 20 segundos para limpar pods antigos..."
+          sleep 20
           
-          # Remove espaços extras
+          echo "🔍 Buscando pod do backend ATIVO..."
+          POD_BACKEND=$(kubectl get pods | grep "^backend-" | grep "Running" | awk '{print $1}' | head -n 1)
+          
           POD_BACKEND=$(echo $POD_BACKEND | xargs)
 
           if [ -z "$POD_BACKEND" ]; then
-             echo "❌ ERRO: Não achei o pod."
+             echo "❌ ERRO CRÍTICO: Não achei nenhum pod 'Running'. Abortando migrate."
+             kubectl get pods
              exit 1
           else
-             echo "📦 Pod encontrado: $POD_BACKEND"
-             
-             # --- ADICIONE ESTA PAUSA AQUI ---
-             echo "😴 Esperando 20 segundos para o container estabilizar..."
-             sleep 20 
-             # --------------------------------
-
+             echo "📦 Pod VIVO encontrado: $POD_BACKEND"
              echo "🛠️ Rodando Migrate..."
              kubectl exec $POD_BACKEND -- python manage.py migrate --noinput
              
@@ -103,10 +103,13 @@ jobs:
              kubectl exec $POD_BACKEND -- python manage.py collectstatic --noinput
           fi
 
+          # ----------------------------------
           # 3. ATUALIZAR FRONTEND
-          echo "🔄 Reiniciando Frontend..."
-          kubectl rollout restart deployment/frontend
+          # ----------------------------------
+          echo "🔄 Atualizando imagem do Frontend..."
+          # CORREÇÃO AQUI: O container se chama 'frontend', não 'foodflow'
+          kubectl set image deployment/frontend frontend=vininobre/foodflow-frontend:${{ github.sha }}
           
           kubectl rollout status deployment/frontend
 
-          echo "✅ DEPLOY FINALIZADO COM SUCESSO! 🍔"
+          echo "✅ DEPLOY FINALIZADO COM SUCESSO! 🍔 Hash: ${{ github.sha }}"
