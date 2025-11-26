@@ -82,16 +82,20 @@ jobs:
           echo "🔍 Buscando pod do backend..."
           POD_BACKEND=$(kubectl get pods --no-headers -o custom-columns=":metadata.name" | grep "^backend-" | head -n 1)
           
-          # Remove espaços em branco extras (trim)
+          # Remove espaços extras
           POD_BACKEND=$(echo $POD_BACKEND | xargs)
 
           if [ -z "$POD_BACKEND" ]; then
-             echo "❌ ERRO CRÍTICO: Não achei nenhum pod começando com 'backend-'. Lista de pods:"
-             kubectl get pods
+             echo "❌ ERRO: Não achei o pod."
              exit 1
           else
              echo "📦 Pod encontrado: $POD_BACKEND"
              
+             # --- ADICIONE ESTA PAUSA AQUI ---
+             echo "😴 Esperando 20 segundos para o container estabilizar..."
+             sleep 20 
+             # --------------------------------
+
              echo "🛠️ Rodando Migrate..."
              kubectl exec $POD_BACKEND -- python manage.py migrate --noinput
              
