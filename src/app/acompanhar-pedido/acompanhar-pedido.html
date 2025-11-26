@@ -1,0 +1,45 @@
+<div class="tracking-container" *ngIf="pedido">
+  
+  <div class="header-track">
+    <h2>Acompanhar Pedido</h2>
+    <span class="badge-codigo">Senha: {{ pedido.codigo_acesso }}</span>
+  </div>
+
+  <div class="status-card">
+    <div class="icon-status">
+      <i class="fas fa-fire" *ngIf="pedido.status === 'em_preparo'"></i>
+      <i class="fas fa-bell" *ngIf="pedido.status === 'pronto'"></i>
+      <i class="fas fa-check-circle" *ngIf="pedido.status === 'entregue'"></i>
+      <i class="fas fa-clock" *ngIf="pedido.status === 'pendente'"></i>
+    </div>
+
+    <h3>{{ getStatusLabel(pedido.status) }}</h3>
+    
+    <div class="progress-wrapper">
+      <div class="progress-bar">
+        <div class="fill" [style.width]="getProgressWidth()"></div>
+      </div>
+    </div>
+
+    <div class="tempo-box" *ngIf="pedido.tempo_estimado && (pedido.status === 'em_preparo' || pedido.status === 'pendente')">
+      <p>⏱️ Tempo estimado: <strong>{{ pedido.tempo_estimado }} minutos</strong></p>
+    </div>
+  </div>
+
+  <div class="resumo-pedido">
+    <h4>Resumo:</h4>
+    <div class="item-row" *ngFor="let item of pedido.itens">
+      <span class="qtd">{{ item.quantidade }}x</span>
+      <span class="nome">{{ item.prato_nome }}</span>
+    </div>
+  </div>
+
+  <button class="btn-voltar" (click)="voltarCardapio()">
+    Voltar ao Cardápio
+  </button>
+
+</div>
+
+<div class="loading" *ngIf="!pedido">
+  <p><i class="fas fa-spinner fa-spin"></i> Carregando status...</p>
+</div>

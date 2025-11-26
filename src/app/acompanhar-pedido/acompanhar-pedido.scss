@@ -1,0 +1,32 @@
+.tracking-container {
+  padding: 20px; max-width: 500px; margin: 0 auto; min-height: 100vh; background-color: #f9f9f9; font-family: sans-serif; text-align: center;
+}
+.header-track {
+  margin-bottom: 30px;
+  h2 { color: #333; margin: 0 0 10px 0; }
+  .badge-codigo { background: #333; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; letter-spacing: 1px; }
+}
+.status-card {
+  background: white; padding: 30px 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); margin-bottom: 20px;
+  .icon-status i { font-size: 3rem; color: #FFD700; margin-bottom: 15px; }
+  h3 { color: #2E8B57; margin: 0 0 20px 0; font-size: 1.2rem; }
+}
+.progress-wrapper {
+  background: #eee; height: 10px; border-radius: 10px; overflow: hidden; margin-bottom: 15px;
+  .fill { height: 100%; background: #2E8B57; transition: width 0.5s ease-in-out; }
+}
+.tempo-box {
+  background: #e3f2fd; color: #1565c0; padding: 10px; border-radius: 8px; display: inline-block; p { margin: 0; }
+}
+.resumo-pedido {
+  background: white; padding: 20px; border-radius: 15px; text-align: left; margin-bottom: 20px;
+  h4 { margin-top: 0; color: #666; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+  .item-row { padding: 8px 0; border-bottom: 1px dashed #eee; color: #444; 
+    .qtd { font-weight: bold; margin-right: 10px; color: #2E8B57; }
+  }
+}
+.btn-voltar {
+  background: transparent; border: 2px solid #666; color: #666; padding: 12px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; width: 100%;
+  &:hover { background: #666; color: white; }
+}
+.loading { padding: 50px; text-align: center; color: #888; font-size: 1.2rem; }
