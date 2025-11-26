@@ -70,40 +70,39 @@ jobs:
         script: |
           echo "🚀 --- INICIANDO DEPLOY COMPLETO ---"
 
-          # ===========================
-          # ATUALIZANDO BACKEND
-          # ===========================
+          # 1. ATUALIZAR BACKEND
           echo "🔄 Reiniciando Backend..."
           kubectl rollout restart deployment/backend
           
-          # TRAVA O SCRIPT até o backend subir (Necessário para rodar o migrate)
           echo "⏳ Aguardando Backend ficar 'Running'..."
           kubectl rollout status deployment/backend
 
-          # ===========================
-          # RODANDO MIGRATE (Obrigatório)
-          # ===========================
-          # Pega o nome do pod novo automaticamente
-          POD_BACKEND=$(kubectl get pods -l app=backend -o jsonpath="{.items[0].metadata.name}")
+          # 2. RODAR MIGRATE & COLLECTSTATIC
+          # --- CORREÇÃO AQUI: Busca pelo NOME do pod, não pelo label ---
+          echo "🔍 Buscando pod do backend..."
+          POD_BACKEND=$(kubectl get pods --no-headers -o custom-columns=":metadata.name" | grep "^backend-" | head -n 1)
           
+          # Remove espaços em branco extras (trim)
+          POD_BACKEND=$(echo $POD_BACKEND | xargs)
+
           if [ -z "$POD_BACKEND" ]; then
-             echo "❌ ERRO CRÍTICO: Não achei o pod do backend. Abortando migrate."
+             echo "❌ ERRO CRÍTICO: Não achei nenhum pod começando com 'backend-'. Lista de pods:"
+             kubectl get pods
              exit 1
           else
-             echo "📦 Rodando Migrate no pod: $POD_BACKEND"
+             echo "📦 Pod encontrado: $POD_BACKEND"
+             
+             echo "🛠️ Rodando Migrate..."
              kubectl exec $POD_BACKEND -- python manage.py migrate --noinput
              
-             echo "🎨 Rodando Collectstatic (Garantia para o Admin)..."
+             echo "🎨 Rodando Collectstatic..."
              kubectl exec $POD_BACKEND -- python manage.py collectstatic --noinput
           fi
 
-          # ===========================
-          # ATUALIZANDO FRONTEND
-          # ===========================
+          # 3. ATUALIZAR FRONTEND
           echo "🔄 Reiniciando Frontend..."
           kubectl rollout restart deployment/frontend
           
-          # Aguarda frontend subir
           kubectl rollout status deployment/frontend
 
           echo "✅ DEPLOY FINALIZADO COM SUCESSO! 🍔"
