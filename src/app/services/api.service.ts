@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-// Mantendo o seu caminho (com 'enviroments' se for o caso)
-import { environment } from '../../enviroments/enviroment';
 
-// --- Interfaces ---
+import { environment } from '../../environments/environment';
+
 export interface Prato {
   id: number;
   nome: string;

@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+commonLabels:
+  app: foodflow
+  project: foodflow-fullstack
+
+resources:
+  
+  # Camada de Dados (PostgreSQL)
+  - postgres-pvc.yaml
+  - postgres-deployment.yaml
+  - postgres-service.yaml
+
+  # Camada de Aplicação (Backend Django)
+  - backend-deployment.yaml
+  - backend-service.yaml
+
+  # Camada de Apresentação (Frontend Angular)
+  - frontend-deployment.yaml
+  - frontend-service.yaml

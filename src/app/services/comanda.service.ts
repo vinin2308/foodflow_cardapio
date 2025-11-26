@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, of} from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Comanda, ComandaBase, ComandaFilha } from '../models/comanda.model';
 import { catchError, tap } from 'rxjs/operators';
-import{environment} from '../../enviroments/enviroment'
+import{environment} from '../../environments/environment'
 
 @Injectable({ providedIn: 'root' })
 export class ComandaService {

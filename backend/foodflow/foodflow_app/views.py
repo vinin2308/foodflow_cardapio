@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.utils.decorators import method_decorator
@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import (
     Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento,
-    PedidoStatus, PedidoUsuario
+    PedidoStatus
 )
 from .serializers import (
     UsuarioSerializer, MesaSerializer, CategoriaSerializer, PratoSerializer,
@@ -26,7 +26,9 @@ from .serializers import (
 # 1. AUTENTICAÇÃO E GERENTE
 # ============================================================================
 
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([])  # registro público
 @permission_classes([AllowAny])
 def gerente_registro(request):
     serializer = GerenteRegistroSerializer(data=request.data)
@@ -39,7 +41,10 @@ def gerente_registro(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([])  # login público
 @permission_classes([AllowAny])
 def gerente_login(request):
     serializer = GerenteLoginSerializer(data=request.data)
@@ -55,8 +60,9 @@ def gerente_login(request):
                 'user': GerentePerfilSerializer(user).data
             })
         return Response({'erro': 'Credenciais inválidas ou usuário não é gerente'}, 
-                       status=status.HTTP_401_UNAUTHORIZED)
+                        status=status.HTTP_401_UNAUTHORIZED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -67,26 +73,30 @@ def gerente_logout(request):
     except:
         return Response({'erro': 'Erro ao fazer logout'}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def gerente_perfil(request):
     if request.method == 'GET':
         serializer = GerentePerfilSerializer(request.user)
         return Response(serializer.data)
-    elif request.method == 'PUT':
-        serializer = GerentePerfilSerializer(request.user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer = GerentePerfilSerializer(request.user, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@csrf_exempt
 @api_view(['POST'])
+@authentication_classes([])  # recuperação de senha pública
 @permission_classes([AllowAny])
 def gerente_esqueceu_senha(request):
     email = request.data.get('email')
     if not email:
         return Response({'erro': 'Email é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
     return Response({'mensagem': 'Funcionalidade simulada: Email enviado.'})
+
 
 # ============================================================================
 # 2. CRUD DE PRODUTOS (GERENTE)
@@ -97,10 +107,12 @@ class CategoriaGerenteViewSet(viewsets.ModelViewSet):
     serializer_class = CategoriaGerenteSerializer
     permission_classes = [IsAuthenticated]
 
+
 class PratoGerenteViewSet(viewsets.ModelViewSet):
     queryset = Prato.objects.all().order_by('-criado_em')
     serializer_class = PratoGerenteSerializer
     permission_classes = [IsAuthenticated]
+
 
 # ============================================================================
 # 3. CORE DA APLICAÇÃO (GARÇOM / MESA)
@@ -115,7 +127,6 @@ class MesaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def adicionar_item(self, request, pk=None):
         mesa = self.get_object()
-        
         prato_id = request.data.get('prato_id')
         quantidade = int(request.data.get('quantidade', 1))
         observacao = request.data.get('observacao', '')
@@ -124,13 +135,11 @@ class MesaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'ID do prato obrigatório'}, status=400)
         
         prato = get_object_or_404(Prato, pk=prato_id)
-        
         usuario_atual = request.user if request.user.is_authenticated else Usuario.objects.filter(is_superuser=True).first()
 
         try:
             with transaction.atomic():
                 pedido = Pedido.objects.filter(mesa=mesa).exclude(status__in=['pago', 'cancelado']).first()
-
                 if not pedido:
                     pedido = Pedido.objects.create(
                         mesa=mesa,
@@ -149,32 +158,23 @@ class MesaViewSet(viewsets.ModelViewSet):
                     preco_unitario=prato.preco,
                     observacao=observacao
                 )
-
-                return Response({
-                    'status': 'Item adicionado',
-                    'pedido_id': pedido.id,
-                    'item': f"{quantidade}x {prato.nome}"
-                })
+                return Response({'status': 'Item adicionado', 'pedido_id': pedido.id, 'item': f"{quantidade}x {prato.nome}"})
 
         except Exception as e:
             return Response({'error': str(e)}, status=500)
 
-    # --- AÇÃO: Liberar Mesa ---
     @action(detail=True, methods=['post'])
     def liberar(self, request, pk=None):
         mesa = self.get_object()
         pedidos = Pedido.objects.filter(mesa=mesa).exclude(status__in=['pago', 'cancelado'])
-        
         for pedido in pedidos:
             pedido.status = PedidoStatus.PAGO
             pedido.save()
-        
         mesa.status = 'disponivel'
-        mesa.solicitou_atencao = False # Reseta chamado se houver
+        mesa.solicitou_atencao = False
         mesa.save()
         return Response({'status': 'Mesa liberada'})
     
-    # --- NOVO: Cliente chama o garçom ---
     @action(detail=True, methods=['post'])
     def chamar_garcom(self, request, pk=None):
         mesa = self.get_object()
@@ -182,7 +182,6 @@ class MesaViewSet(viewsets.ModelViewSet):
         mesa.save()
         return Response({'status': 'Garçom solicitado'})
 
-    # --- NOVO: Garçom atende o chamado ---
     @action(detail=True, methods=['post'])
     def atender_chamado(self, request, pk=None):
         mesa = self.get_object()
@@ -190,42 +189,10 @@ class MesaViewSet(viewsets.ModelViewSet):
         mesa.save()
         return Response({'status': 'Chamado atendido'})
 
+
 # ============================================================================
-# 4. CORE DA APLICAÇÃO (CLIENTE / COZINHA)
+# 4. CORE DA APLICAÇÃO (CLIENTE / COZINHA / PEDIDOS)
 # ============================================================================
-
-    def get_queryset(self):
-        # Gerente pode ver todos os pratos (ativos e inativos)
-        return Prato.objects.all().order_by('-criado_em')
-
-# 🔔 Função para emitir eventos via WebSocket (quando cria/atualiza pedidos)
-
-@api_view(['GET'])
-def pedido_por_codigo(request, codigo):
-    pedidos = Pedido.objects.filter(codigo_acesso=codigo)
-    if not pedidos.exists():
-        return Response({'erro': 'Nenhuma comanda encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-
-    serializer = PedidoReadSerializer(pedidos, many=True)
-    return Response(serializer.data)
-
-# 🚪 Iniciar uma nova comanda para uma mesa
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def iniciar_comanda(request):
-    nome_cliente = request.data.get('nome_cliente')
-    mesa_id = request.data.get('mesa')
-    if not mesa_id:
-        return Response({'erro': 'Mesa é obrigatória.'}, status=400)
-    mesa = get_object_or_404(Mesa, id=mesa_id)
-    comanda_existente = Pedido.objects.filter(mesa=mesa).exclude(status__in=['pago', 'cancelado']).first()
-    if comanda_existente:
-        return Response({'codigo_acesso': comanda_existente.codigo_acesso})
-    usuario = request.user if request.user.is_authenticated else None
-    pedido = Pedido.objects.create(mesa=mesa, criado_por=usuario, nome_cliente=nome_cliente, status=PedidoStatus.PENDENTE)
-    mesa.status = 'ocupada'
-    mesa.save()
-    return Response({'codigo_acesso': pedido.codigo_acesso})
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -237,28 +204,53 @@ def pedido_por_codigo(request, codigo):
     return Response(serializer.data)
 
 
+@api_view(['POST'])
+def iniciar_comanda(request):
+    nome_cliente = request.data.get('nome_cliente')
+    mesa_id = request.data.get('mesa')
+    if not mesa_id:
+        return Response({'erro': 'Mesa é obrigatória.'}, status=400)
+    mesa = get_object_or_404(Mesa, id=mesa_id)
+    comanda_existente = Pedido.objects.filter(mesa=mesa).exclude(status__in=['pago', 'cancelado']).first()
+    if comanda_existente:
+        if nome_cliente and not comanda_existente.nome_cliente:
+            comanda_existente.nome_cliente = nome_cliente
+            comanda_existente.save()
+        return Response({'codigo_acesso': comanda_existente.codigo_acesso})
+    usuario = request.user if request.user.is_authenticated else None
+    pedido = Pedido.objects.create(mesa=mesa, criado_por=usuario, nome_cliente=nome_cliente, status=PedidoStatus.PENDENTE)
+    mesa.status = 'ocupada'
+    mesa.save()
+    return Response({'codigo_acesso': pedido.codigo_acesso})
+
+
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
+
 
 class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Categoria.objects.filter(ativo=True)
     serializer_class = CategoriaSerializer
     permission_classes = [AllowAny]
 
+
 class PratoViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Prato.objects.filter(ativo=True)
     serializer_class = PratoSerializer
     permission_classes = [AllowAny]
+
 
 class PedidoItemViewSet(viewsets.ModelViewSet):
     queryset = PedidoItem.objects.all()
     serializer_class = PedidoItemSerializer
     permission_classes = [AllowAny]
 
+
 class PagamentoViewSet(viewsets.ModelViewSet):
     queryset = Pagamento.objects.all()
     serializer_class = PagamentoSerializer
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class PedidoViewSet(viewsets.ModelViewSet):
@@ -272,11 +264,14 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'post'])
     def cozinha(self, request):
-        status_param = request.GET.get('status')
         if request.method == 'GET':
-            pedidos = Pedido.objects.all() if not status_param else Pedido.objects.filter(status=status_param)
+            status_param = request.GET.get('status')
+            pedidos = self.get_queryset()
+            if status_param:
+                pedidos = pedidos.filter(status=status_param)
             serializer = PedidoReadSerializer(pedidos, many=True)
             return Response(serializer.data)
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         pedido = serializer.save()
@@ -289,7 +284,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedido.save()
         return Response(PedidoReadSerializer(pedido).data)
 
-    # --- NOVO: Garçom entrega o pedido ---
     @action(detail=True, methods=['post'])
     def entregar(self, request, pk=None):
         pedido = self.get_object()
@@ -299,7 +293,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedido.save()
         return Response(PedidoReadSerializer(pedido).data)
 
-    # --- Comanda Pai/Filha ---
     @action(detail=True, methods=['post'])
     def adicionar_filha(self, request, pk=None):
         comanda_pai = get_object_or_404(Pedido, pk=pk)
@@ -317,7 +310,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def entrar_comanda(self, request):
         codigo = request.data.get('codigo_acesso')
-        if not codigo: return Response({'erro': 'Código obrigatório'}, status=400)
+        if not codigo: 
+            return Response({'erro': 'Código obrigatório'}, status=400)
         pedido = Pedido.objects.filter(codigo_acesso=codigo).first()
-        if not pedido: return Response({'erro': 'Pedido não encontrado'}, status=404)
+        if not pedido: 
+            return Response({'erro': 'Pedido não encontrado'}, status=404)
         return Response(PedidoReadSerializer(pedido).data)

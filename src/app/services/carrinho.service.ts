@@ -3,10 +3,9 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ItemCardapio } from '../models/item-cardapio.model';
 import { ComandaService } from './comanda.service';
-import { WebSocketService } from './websocket.service';
 import { PedidoPayload } from '../models/pedidos.model';
 import { Comanda } from '../models/comanda.model';
-import { environment } from '../../enviroments/enviroment';
+import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class CarrinhoService {
   private pratosCardapioSubject = new BehaviorSubject<ItemCardapio[]>([]);
@@ -15,7 +14,6 @@ export class CarrinhoService {
 
   constructor(
     private http: HttpClient,
-    private wsService: WebSocketService,
     private comandaService: ComandaService
   ) {
     this.carregarPratosCardapio();
@@ -102,10 +100,6 @@ export class CarrinhoService {
     // Sempre envia, mesmo que vazio
     const payload = { itens: itensValidos };
 
-    this.comandaService.atualizarComandaParcial(comanda.id, payload).subscribe({
-      next: updated => this.wsService.enviarComandaAtualizada(updated),
-      error: err => console.error('Erro ao atualizar comanda no backend:', err)
-    });
   }
 
   toggleCarrinho(): void {

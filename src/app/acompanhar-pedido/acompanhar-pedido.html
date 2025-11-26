@@ -21,8 +21,11 @@
       </div>
     </div>
 
-    <div class="tempo-box" *ngIf="pedido.status === 'em_preparo' && pedido.tempo_estimado">
-      <p>Tempo estimado: <strong>{{ pedido.tempo_estimado }} min</strong></p>
+
+
+    <div class="tempo-box" *ngIf="pedido.tempo_estimado && (pedido.status === 'em_preparo' || pedido.status === 'pendente')">
+      <p>⏱️ Tempo estimado: <strong>{{ pedido.tempo_estimado }} minutos</strong></p>
+
     </div>
   </div>
 
