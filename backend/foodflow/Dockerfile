@@ -19,7 +19,7 @@ COPY . .
 
 # 4. PASSO CRUCIAL: Coletar arquivos estáticos (CSS do Admin)
 # O WhiteNoise precisa desta pasta 'staticfiles' preenchida.
-RUN python manage.py collectstatic --noinput
+RUN SECRET_KEY=segredo_temporario_para_build python manage.py collectstatic --noinput
 
 # 5. Expor a porta que o Gunicorn vai escutar
 EXPOSE 8000

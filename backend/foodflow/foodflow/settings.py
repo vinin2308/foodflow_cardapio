@@ -1,16 +1,15 @@
-import os
 import dj_database_url
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
+SECRET_KEY = config('SECRET_KEY', default='chave-insegura-apenas-para-build')
 
-SECRET_KEY = config('SECRET_KEY')
+# Se der erro no DEBUG também:
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
 INSTALLED_APPS = [
     'corsheaders',
     'django.contrib.admin',
@@ -56,16 +55,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'foodflow.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='foodflow'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default='11022006'),
-        'HOST': config('DB_HOST', default='localhost'),  
-        'PORT': config('DB_PORT', default='5432'),
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL', default=None)
+    )
 }
-
+if not DATABASES['default']:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='foodflow'),
+            'USER': config('DB_USER', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default='11022006'),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
+    
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
@@ -73,8 +78,8 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'pt-br'  # Antes estava 'en-us'
+TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
