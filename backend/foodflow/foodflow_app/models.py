@@ -150,6 +150,7 @@ class Pedido(models.Model):
         default=PedidoStatus.PENDENTE
     )
     tempo_estimado = models.IntegerField(null=True, blank=True)
+    inicio_preparo = models.DateTimeField(null=True, blank=True)
     criado_por = models.ForeignKey('Usuario', on_delete=models.PROTECT, null=True, blank=True)
     ativo = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)

@@ -52,20 +52,40 @@ export class OrderCardComponent implements OnInit, OnDestroy {
 
   // ✅ CORREÇÃO 2: Usar 'criado_em'
   getFormattedRemainingTime(): string {
-    if (!this.order.tempo_estimado || !this.order.criado_em) return '';
+    if (!this.order.criado_em) return 'Calculando...';
+    
+    // SE NÃO TIVER TEMPO DEFINIDO, ASSUME 45 MINUTOS
+    const tempoEstimado = this.order.tempo_estimado || 45; 
+
     const criadoEm = new Date(this.order.criado_em).getTime();
-    const prazoMs = this.order.tempo_estimado * 60 * 1000;
-    const diff = Math.max(0, (criadoEm + prazoMs) - Date.now());
+    const prazoMs = tempoEstimado * 60 * 1000;
+    const agora = Date.now();
+    
+    // Calcula a diferença entre o Prazo Final e Agora
+    const diff = (criadoEm + prazoMs) - agora;
+
+    // Se o tempo já estourou (negativo)
+    if (diff < 0) {
+      const atraso = Math.abs(diff);
+      const minutos = Math.floor(atraso / 60000);
+      const segundos = Math.floor((atraso % 60000) / 1000);
+      return `+${minutos}m ${segundos}s`; // Mostra quanto tempo passou do prazo
+    }
+
+    // Se ainda está no prazo
     const minutos = Math.floor(diff / 60000);
     const segundos = Math.floor((diff % 60000) / 1000);
     return `${minutos}m ${segundos}s`;
   }
 
-  // ✅ CORREÇÃO 3: Usar 'criado_em'
+  // ✅ CORREÇÃO 3: Ajuste para usar o valor padrão também
   isOvertime(): boolean {
-    if (!this.order.tempo_estimado || !this.order.criado_em) return false;
+    if (!this.order.criado_em) return false;
+    
+    const tempoEstimado = this.order.tempo_estimado || 45; // Padrão 45 min
+    
     const criadoEm = new Date(this.order.criado_em).getTime();
-    return Date.now() > criadoEm + (this.order.tempo_estimado * 60 * 1000);
+    return Date.now() > criadoEm + (tempoEstimado * 60 * 1000);
   }
 
   onStartPreparation(): void { this.startPreparation.emit(this.order.id); }
