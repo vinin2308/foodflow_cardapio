@@ -81,8 +81,6 @@ class Mesa(models.Model):
     capacidade = models.IntegerField()
     status = models.CharField(max_length=20, choices=[('disponivel', 'Disponível'), ('ocupada', 'Ocupada'), ('reservada', 'Reservada')])
     ativo = models.BooleanField(default=True)
-    
-    # --- NOVO CAMPO: ALERTA DE CHAMADO ---
     solicitou_atencao = models.BooleanField(default=False)
     # -------------------------------------
 

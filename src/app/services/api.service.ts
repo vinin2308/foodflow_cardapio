@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
+// Mantendo o seu caminho (com 'enviroments' se for o caso)
 import { environment } from '../../environments/environment';
 
+// --- Interfaces ---
 export interface Prato {
   id: number;
   nome: string;
@@ -15,10 +16,12 @@ export interface Mesa {
   id: number;
   numero: number;
   status: 'disponivel' | 'ocupada' | 'reservada';
-  valor_total_mesa: number;
-  pedidos: any[]; 
+  capacidade: number;
+  ativo: boolean;
+  valor_total_mesa?: number;
+  pedidos?: any[]; 
   garcom?: string;
-  solicitou_atencao: boolean; 
+  solicitou_atencao?: boolean; 
 }
 
 export interface PedidoItem {
@@ -95,5 +98,19 @@ export class ApiService {
   
   consultarStatusPedido(codigo: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/pedido-por-codigo/${codigo}/`);
+  }
+
+  // --- CRUD DE MESAS (GERENTE) ---
+
+  criarMesa(mesa: Partial<Mesa>): Observable<Mesa> {
+    return this.http.post<Mesa>(`${this.baseUrl}/mesas/`, mesa);
+  }
+
+  atualizarMesa(mesaId: number, mesa: Partial<Mesa>): Observable<Mesa> {
+    return this.http.put<Mesa>(`${this.baseUrl}/mesas/${mesaId}/`, mesa);
+  }
+
+  deletarMesa(mesaId: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/mesas/${mesaId}/`);
   }
 }

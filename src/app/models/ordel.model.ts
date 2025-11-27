@@ -13,7 +13,7 @@ export interface OrderItem {
 export interface Order {
   id: number;
   
-  // --- ADICIONEI ESTA LINHA PARA CORRIGIR O ERRO ---
+  // --- ADICION EI ESTA LINHA PARA CORRIGIR O ERRO ---
   mesa?: number;         
   // -------------------------------------------------
   

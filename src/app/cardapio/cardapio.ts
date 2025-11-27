@@ -13,6 +13,7 @@ import { PratoService } from '../services/prato.service';
 import { CategoriaService } from '../services/categoria.service';
 import { Comanda } from '../models/comanda.model';
 import { ComandaService } from '../services/comanda.service';
+import { ApiService } from '../services/api.service';
 @Component({
   selector: 'app-cardapio',
   standalone: true,
@@ -44,7 +45,8 @@ export class CardapioComponent implements OnInit, OnDestroy {
     private carrinhoService: CarrinhoService,
     private pratoService: PratoService,
     private categoriaService: CategoriaService,
-    private comandaService: ComandaService
+    private comandaService: ComandaService,
+    private apiService: ApiService
   ) {}
 
 ngOnInit(): void {
@@ -171,6 +173,38 @@ adicionarItemComObservacao(observacao: string): void {
 
   formatarPreco(preco: number): string {
     return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  chamarGarcom(): void {
+    const mesaNum = Number(this.mesa);
+    if (!mesaNum || isNaN(mesaNum)) {
+      alert('Mesa não identificada!');
+      return;
+    }
+
+    // Buscar o ID da mesa pelo número
+    this.apiService.listarMesas().subscribe({
+      next: (mesas) => {
+        const mesaEncontrada = mesas.find(m => m.numero === mesaNum);
+        if (mesaEncontrada && mesaEncontrada.id) {
+          this.apiService.chamarGarcom(mesaEncontrada.id).subscribe({
+            next: () => {
+              alert('🔔 Garçom chamado com sucesso!');
+            },
+            error: (err) => {
+              console.error('Erro ao chamar garçom:', err);
+              alert('Erro ao chamar garçom. Tente novamente.');
+            }
+          });
+        } else {
+          alert('Mesa não encontrada!');
+        }
+      },
+      error: (err) => {
+        console.error('Erro ao buscar mesas:', err);
+        alert('Erro ao buscar mesa. Tente novamente.');
+      }
+    });
   }
 
   ngOnDestroy(): void {

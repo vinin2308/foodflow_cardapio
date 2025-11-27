@@ -23,11 +23,16 @@
       </span>
     </div>
 
-    <!-- Botão do Carrinho -->
-    <button class="carrinho-btn" (click)="toggleCarrinho()" id="abrir-carrinho">
-      🛒
-      <span class="badge" *ngIf="quantidadeTotalItens > 0">{{ quantidadeTotalItens }}</span>
-    </button>
+    <!-- Botões de Ação -->
+    <div class="header-actions">
+      <button class="garcom-btn" (click)="chamarGarcom()" title="Chamar Garçom">
+        🔔
+      </button>
+      <button class="carrinho-btn" (click)="toggleCarrinho()" id="abrir-carrinho">
+        🛒
+        <span class="badge" *ngIf="quantidadeTotalItens > 0">{{ quantidadeTotalItens }}</span>
+      </button>
+    </div>
   </header> 
 
   <!-- 2. NAVEGAÇÃO DE CATEGORIAS -->

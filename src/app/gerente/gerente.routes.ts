@@ -6,6 +6,7 @@ import { GerenteHomeComponent } from './home/home';
 import { GerentePratosComponent } from './pratos/pratos';
 import { GerenteCategoriasComponent } from './categorias/categorias';
 import { GerentePerfilComponent } from './perfil/perfil';
+import { GerenteMesasComponent } from './mesas/mesas';
 
 export const gerenteRoutes: Routes = [
   { path: 'login', component: GerenteLoginComponent },
@@ -15,5 +16,6 @@ export const gerenteRoutes: Routes = [
   { path: 'pratos', component: GerentePratosComponent },
   { path: 'categorias', component: GerenteCategoriasComponent },
   { path: 'perfil', component: GerentePerfilComponent },
+  { path: 'mesas', component: GerenteMesasComponent },
   { path: '', redirectTo: 'login', pathMatch: 'full' }
 ];

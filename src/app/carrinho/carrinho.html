@@ -3,7 +3,7 @@
     <!-- Header do Carrinho -->
     <div class="carrinho-header">
       <h3>🛒 Seu Pedido</h3>
-      <button class="btn-fechar" (click)="onFechar()" id="fechar-carrinho">×</button>
+      <button type="button" class="btn-fechar" (click)="onFechar()" id="fechar-carrinho">×</button>
     </div>
 
     <!-- Informações da Mesa -->
@@ -83,7 +83,7 @@
       </div>
 
       <button 
-        class="btn-confirmar"
+        type="button"  class="btn-confirmar"
         (click)="confirmarPedido()"
         [disabled]="confirmandoPedido"
         id="confirmar-pedido"
