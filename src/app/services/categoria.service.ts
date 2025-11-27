@@ -2,21 +2,18 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-export interface Categoria {
-  id: number;
-  nome: string;
-  icone: string;
-}
+import { CategoriaCardapio } from '../models/item-cardapio.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CategoriaService {
-  private apiUrl = environment.apiUrl + '/categorias/';
+  // 🔴 ATENÇÃO: Rota limpa, SEM '/gerente/'
+  private apiUrl = `${environment.apiUrl}/categorias`;
 
   constructor(private http: HttpClient) {}
 
-  listarCategorias(): Observable<Categoria[]> {
-    return this.http.get<Categoria[]>(this.apiUrl);
+  listarCategorias(): Observable<CategoriaCardapio[]> {
+    return this.http.get<CategoriaCardapio[]>(`${this.apiUrl}/`);
   }
 }

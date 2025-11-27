@@ -3,8 +3,7 @@ import { PedidosService } from '../services/pedidos.service';
 import { OrderCardComponent } from './components/order-card/order-card';
 import { TimeModalComponent } from './components/time-modal/time-modal';
 import { CommonModule } from '@angular/common';
-import { interval, switchMap } from 'rxjs';
-import { Order, OrderStatus } from '../models/ordel.model';
+import { timer, switchMap, retry, share, takeUntil, Subject } from 'rxjs';import { Order, OrderStatus } from '../models/ordel.model';
 import { HeaderComponent } from './components/header/header';
 import { ItemCardapio } from '../models/item-cardapio.model';
 import { PratoService } from '../services/prato.service';
@@ -17,6 +16,7 @@ import { PratoService } from '../services/prato.service';
   styleUrls: ['./cozinha.scss']
 })
 export class CozinhaComponent implements OnInit {
+  private destroy$ = new Subject<void>();
   OrderStatus = OrderStatus;
   pedidos: Order[] = [];
   pratosCardapio: ItemCardapio[] = [];
@@ -43,18 +43,39 @@ export class CozinhaComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.carregarPedidosPendentes();
+  // Configura um timer que dispara agora (0ms) e depois a cada 5000ms
+  timer(0, 5000)
+    .pipe(
+      // Cancela a requisição anterior se demorar mais que 5s e inicia a nova
+      switchMap(() => this.pedidoService.listarPedidosPendentes()),
+      // Se der erro na API, não mata o intervalo, apenas tenta de novo na próxima
+      retry(), 
+      // Limpa o intervalo quando o componente for destruído
+      takeUntil(this.destroy$)
+    )
+    .subscribe({
+      next: (pedidos) => {
+        console.log('🔄 Atualizando pedidos da cozinha...', pedidos.length);
+        
+        // Verifica se houve mudança real para evitar "piscar" a tela à toa
+        // (Opcional, mas recomendado se a lista for grande)
+        if (JSON.stringify(this.pedidos) !== JSON.stringify(pedidos)) {
+           this.pedidos = pedidos;
+           this.aplicarFiltro();
+        }
+      },
+      error: (err) => {
+        console.error('Erro no polling da cozinha:', err);
+        // Não mostre notificação visual a cada 5s para não irritar o usuário
+        // Apenas logue no console.
+      }
+    });
+}
 
-    interval(5000)
-      .pipe(switchMap(() => this.pedidoService.listarPedidosPendentes()))
-      .subscribe({
-        next: pedidos => {
-          this.pedidos = pedidos;
-          this.aplicarFiltro();
-        },
-        error: () => this.mostrarNotificacao('Erro ao atualizar pedidos', 'error')
-      });
-  }
+ngOnDestroy(): void {
+  this.destroy$.next();
+  this.destroy$.complete();
+}
 
 carregarPedidosPendentes(): void {
   this.pedidoService.listarPedidosPendentes().subscribe({

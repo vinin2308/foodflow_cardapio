@@ -88,7 +88,9 @@ class PedidoReadSerializer(serializers.ModelSerializer):
             'status',  
             'nome_cliente', 
             'criado_por_nome',
-            'criado_em'     
+            'criado_em',
+            'tempo_estimado',
+            'inicio_preparo'  
         ]
         read_only_fields = ['codigo_acesso']
 
@@ -194,7 +196,7 @@ class PedidoWriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Pedido
-        fields = ['mesa', 'nome_cliente', 'status', 'itens', 'comanda_pai', 'codigo_acesso']
+        fields = ['mesa', 'nome_cliente', 'status', 'itens', 'comanda_pai', 'codigo_acesso','tempo_estimado']
         extra_kwargs = {
             'mesa': {'required': False}
         }

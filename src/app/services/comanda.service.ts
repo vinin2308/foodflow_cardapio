@@ -191,5 +191,9 @@ const payload = {
   console.log('Payload de itens enviado para atualizarComanda:', payload);
   return this.atualizarComandaParcial(comanda.id, payload);
 }
-
+notificarMudancaLocal(): void {
+  if (this.comandaAtual) {
+    this.comandaSubject.next(this.comandaAtual);
+  }
+}
 }

@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+import traceback
 
 from .models import (
     Usuario, Mesa, Categoria, Prato, Pedido, PedidoItem, Pagamento,
@@ -216,57 +217,80 @@ def pedido_por_codigo(request, codigo):
 # No seu arquivo views.py
 
 @api_view(['POST'])
-@permission_classes([AllowAny]) # Mantém permissão pública para clientes
+@permission_classes([AllowAny])
 def iniciar_comanda(request):
-    nome_cliente = request.data.get('nome_cliente')
-    mesa_numero = request.data.get('mesa') # O frontend envia o NÚMERO da mesa
+    print("--- INICIANDO COMANDA (DEBUG) ---") 
+    print("Dados recebidos:", request.data)
 
-    # 1. VALIDAÇÃO DE ENTRADA
-    if not mesa_numero:
-        return Response({'erro': 'O número da mesa é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    # 2. BUSCA SEGURA DA MESA (A CORREÇÃO PRINCIPAL ESTÁ AQUI)
     try:
-        # Busca pelo campo 'numero' e garante que 'ativo' seja True
-        mesa = Mesa.objects.get(numero=mesa_numero, ativo=True)
-    except Mesa.DoesNotExist:
-        # Se a mesa não foi criada pelo gerente ou está inativa, bloqueia aqui.
-        return Response(
-            {'erro': f'A Mesa {mesa_numero} não está cadastrada ou não está ativa.'}, 
-            status=status.HTTP_404_NOT_FOUND
+        nome_cliente = request.data.get('nome_cliente')
+        mesa_numero = request.data.get('mesa')
+
+        if not mesa_numero:
+            return Response({'erro': 'O número da mesa é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        mesa_numero = int(mesa_numero)
+
+        # Busca Mesa
+        mesa = Mesa.objects.filter(numero=mesa_numero, ativo=True).first()
+        if not mesa:
+            return Response({'erro': f'A Mesa {mesa_numero} não existe ou não está ativa.'}, status=404)
+
+        # Verifica comanda existente
+        comanda_existente = Pedido.objects.filter(
+            mesa=mesa
+        ).exclude(
+            status__in=[PedidoStatus.PAGO, PedidoStatus.CANCELADO]
+        ).first()
+
+        if comanda_existente:
+            print(f"Comanda existente encontrada: {comanda_existente.id}")
+            if nome_cliente and not comanda_existente.nome_cliente:
+                comanda_existente.nome_cliente = nome_cliente
+                comanda_existente.save()
+            
+            # RETORNO CORRIGIDO PARA COMANDA EXISTENTE
+            return Response({
+                'id': comanda_existente.id,
+                'codigo_acesso': comanda_existente.codigo_acesso,
+                'mesa_numero': mesa.numero,
+                'nome_cliente': comanda_existente.nome_cliente,
+                'status': comanda_existente.status,
+                'eh_principal': True,
+                'itens': PedidoItemSerializer(comanda_existente.itens.all(), many=True).data
+            })
+
+        usuario = request.user if request.user.is_authenticated else None
+        
+        print("Tentando criar novo pedido...")
+        pedido = Pedido.objects.create(
+            mesa=mesa,
+            criado_por=usuario,
+            nome_cliente=nome_cliente or f"Cliente Mesa {mesa.numero}",
+            status=PedidoStatus.PENDENTE
         )
-    except ValueError:
-        return Response({'erro': 'Formato de mesa inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+        print(f"Pedido criado com sucesso: ID {pedido.id}")
 
-    # 3. VERIFICA SE JÁ EXISTE COMANDA ABERTA NA MESA
-    comanda_existente = Pedido.objects.filter(
-        mesa=mesa
-    ).exclude(
-        status__in=[PedidoStatus.PAGO, PedidoStatus.CANCELADO]
-    ).first()
+        mesa.status = 'ocupada'
+        mesa.save()
 
-    if comanda_existente:
-        # Se o cliente enviou um nome, atualiza a comanda existente
-        if nome_cliente and not comanda_existente.nome_cliente:
-            comanda_existente.nome_cliente = nome_cliente
-            comanda_existente.save()
-        return Response({'codigo_acesso': comanda_existente.codigo_acesso})
+        # 🔴 AQUI ESTÁ A MÁGICA QUE CONSERTA TUDO 🔴
+        return Response({
+            'id': pedido.id,                  # O Angular PRECISA desse ID
+            'codigo_acesso': pedido.codigo_acesso,
+            'mesa_numero': mesa.numero,       # O Angular PRECISA desse número
+            'nome_cliente': pedido.nome_cliente,
+            'status': pedido.status,
+            'eh_principal': True,
+            'itens': []                       # Comanda nova começa sem itens
+        }, status=status.HTTP_201_CREATED)
 
-    # 4. CRIAÇÃO DA NOVA COMANDA
-    usuario = request.user if request.user.is_authenticated else None
-    
-    pedido = Pedido.objects.create(
-        mesa=mesa, 
-        criado_por=usuario, 
-        nome_cliente=nome_cliente, 
-        status=PedidoStatus.PENDENTE
-    )
-    
-    # Atualiza status da mesa
-    mesa.status = 'ocupada'
-    mesa.save()
-
-    return Response({'codigo_acesso': pedido.codigo_acesso}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("ERRO FATAL EM INICIAR_COMANDA:")
+        traceback.print_exc() 
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        return Response({'erro': f'Erro interno no servidor: {str(e)}'}, status=500)
 
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
