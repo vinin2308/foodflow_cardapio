@@ -96,9 +96,8 @@ jobs:
              exit 1
           else
              echo "📦 Pod VIVO encontrado: $POD_BACKEND"
-             echo "🛠️ Criando e Rodando Migrates..."
-            kubectl exec $POD_BACKEND -- python manage.py makemigrations foodflow_app
-            kubectl exec $POD_BACKEND -- python manage.py migrate --noinput
+             echo "🛠️ Rodando Migrate..."
+             kubectl exec $POD_BACKEND -- python manage.py migrate --noinput
              
              echo "🎨 Rodando Collectstatic..."
              kubectl exec $POD_BACKEND -- python manage.py collectstatic --noinput
