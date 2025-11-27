@@ -56,15 +56,25 @@ export class CozinhaComponent implements OnInit {
       });
   }
 
-  carregarPedidosPendentes(): void {
-    this.pedidoService.listarPedidosPendentes().subscribe({
-      next: pedidos => {
-        this.pedidos = pedidos;
-        this.aplicarFiltro();
-      },
-      error: () => this.mostrarNotificacao('Erro ao carregar pedidos', 'error')
-    });
-  }
+carregarPedidosPendentes(): void {
+  this.pedidoService.listarPedidosPendentes().subscribe({
+    next: pedidos => {
+      // Mapeia cada pedido para garantir que os itens tenham prato_nome e quantidade
+      this.pedidos = pedidos.map(pedido => ({
+        ...pedido,
+        itens: pedido.itens.map((item: any) => ({
+          prato_nome: item.prato_nome,
+          quantidade: item.quantidade,
+          observacao: item.observacao || ''
+        }))
+      }));
+
+      this.aplicarFiltro();
+    },
+    error: () => this.mostrarNotificacao('Erro ao carregar pedidos', 'error')
+  });
+}
+
 
   carregarPedidos(): void {
     this.pedidoService.listarPedidos().subscribe({

@@ -273,13 +273,13 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
 
 
-class CategoriaViewSet(viewsets.ReadOnlyModelViewSet):
+class CategoriaViewSet(viewsets.ModelViewSet):
     queryset = Categoria.objects.filter(ativo=True)
     serializer_class = CategoriaSerializer
     permission_classes = [AllowAny]
 
 
-class PratoViewSet(viewsets.ReadOnlyModelViewSet):
+class PratoViewSet(viewsets.ModelViewSet):
     queryset = Prato.objects.filter(ativo=True)
     serializer_class = PratoSerializer
     permission_classes = [AllowAny]
