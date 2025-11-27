@@ -3,11 +3,13 @@ import dj_database_url
 from pathlib import Path
 from decouple import config
 
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='insecure-dev-key')
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True
+
 
 ALLOWED_HOSTS = ['*']
 
@@ -59,8 +61,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': config('DB_NAME', default='foodflow'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default='11022006'),
+        'USER': config('DB_USER', default='geo'),
+        'PASSWORD': config('DB_PASSWORD', default='geo123'),
         'HOST': config('DB_HOST', default='localhost'),  
         'PORT': config('DB_PORT', default='5432'),
     }

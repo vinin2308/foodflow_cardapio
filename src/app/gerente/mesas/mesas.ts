@@ -154,4 +154,11 @@ export class GerenteMesasComponent implements OnInit {
   getStatusClass(status: string): string {
     return `status-${status}`;
   }
+    logout(): void {
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/gerente/login']);
+      }
+    });
+  }
 }
