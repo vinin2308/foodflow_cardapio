@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of} from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { Comanda, ComandaBase, ComandaFilha } from '../models/comanda.model';
+import { Comanda } from '../models/comanda.model';
 import { catchError, tap } from 'rxjs/operators';
-import{environment} from '../../environments/environment'
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class ComandaService {
@@ -21,179 +21,83 @@ export class ComandaService {
     return this.comandaAtual || null;
   }
 
-  public obterComandaPrincipal(comandas: Comanda[]): Comanda | null {
-  return comandas.find(c => c.eh_principal) || null;
-}
+  // --- NOVO MÉTODO: Cria o rascunho local sem ir no backend ---
+  setComandaLocalVazia(mesa: number, nomeCliente: string, modoVinculado = false): void {
+    // Usamos 'any' temporariamente no objeto para montar, depois o TypeScript valida como Comanda
+    // Ou simplesmente adicionamos a propriedade faltante:
+    const comandaLocal: any = { 
+      id: 0, 
+      mesa_numero: mesa,
+      nome_cliente: nomeCliente,
+      status: 'rascunho',
+      codigo_acesso: undefined, 
+      eh_principal: !modoVinculado,
+      
+      // ✅ CORREÇÃO: Adicionando a propriedade obrigatória
+      comanda_pai_id: undefined, 
+      
+      itens: []
+    };
 
-normalizarComanda(comanda: any): Comanda {
-  const itensCorrigidos = Array.isArray(comanda.itens) ? comanda.itens : [];
-
-  return {
-    ...comanda,
-    itens: itensCorrigidos,
-    eh_principal: comanda.eh_principal === true,
-  };
-}
-
-
-
-setComanda(comanda: Comanda): void {
-  const comandaCorrigida = this.normalizarComanda(comanda);
-  const chave = comanda.eh_principal
-    ? `comanda-${comanda.mesa_numero}`
-    : `comanda-vinculada-${comanda.mesa_numero}`;
-
-  this.comandaAtual = comandaCorrigida;
-  this.comandaSubject.next(comandaCorrigida);
-  localStorage.setItem(chave, JSON.stringify(comandaCorrigida));
-
-  // ⚡ Sempre salva o código do backend
-  if (comanda.eh_principal && comanda.codigo_acesso) {
-    localStorage.setItem('codigo-acesso', comanda.codigo_acesso);
-  }
-
-  console.log('✅ Comanda salva no localStorage para mesa:', comanda.mesa_numero);
-}
-
-
-
-inicializarComanda(mesa: number, nomeCliente?: string, modoVinculado = false): void {
-  const chave = modoVinculado
-    ? `comanda-vinculada-${mesa}`
-    : `comanda-${mesa}`;
-
-  // Limpa localStorage antigo para não usar código desatualizado
-  const codigoSalvo = localStorage.getItem('codigo-acesso');
-
-  const comandaLocal = this.restaurarComandaLocal(mesa, modoVinculado);
-  if (comandaLocal && !codigoSalvo) {
-    this.setComanda(comandaLocal);
-    return;
-  }
-
-  const nome = nomeCliente || localStorage.getItem('nome') || '';
-
-  // Se tiver código salvo, tenta buscar no backend
-  if (codigoSalvo) {
-    this.buscarPorCodigo(codigoSalvo).subscribe(comandas => {
-      const comandaPrincipal = this.obterComandaPrincipal(comandas);
-
-      if (comandaPrincipal && !modoVinculado) {
-        this.setComanda(this.normalizarComanda(comandaPrincipal));
-        return;
-      }
-
-      if (modoVinculado && comandas.length > 1) {
-        const vinculada = comandas.find(c => !c.eh_principal);
-        if (vinculada) {
-          this.setComanda(this.normalizarComanda(vinculada));
-          return;
-        }
-      }
-
-      // Código não existe no backend → criar nova comanda sem usar código antigo
-      this.criarNovaComanda(mesa, nome, modoVinculado, comandaPrincipal?.id);
-    });
-  } else {
-    // Nenhum código salvo → cria comanda normalmente
-    this.criarNovaComanda(mesa, nome, modoVinculado);
-  }
-}
-
-
-
-private criarNovaComanda(
-  mesa: number,
-  nome: string,
-  modoVinculado: boolean,
-  idPai?: number
-): void {
-  if (modoVinculado && idPai) {
-    this.criarComandaFilha(idPai, {mesa, nome_cliente: nome }).subscribe(filha => {
-      this.setComanda(this.normalizarComanda(filha));
-    });
-  } else {
-    // Cria a comanda principal no backend e pega o código real retornado
-    this.criarComanda({ mesa, nome_cliente: nome }).subscribe(comanda => {
-      this.setComanda(this.normalizarComanda(comanda));
-      // Salva o código correto no localStorage
-      if (comanda.eh_principal && comanda.codigo_acesso) {
-        localStorage.setItem('codigo-acesso', comanda.codigo_acesso);
-      }
-    });
+    // Agora garantimos que é uma Comanda válida
+    this.setComanda(comandaLocal as Comanda);
   } 
-}
 
+  // Atualiza o estado da aplicação e o LocalStorage
+  setComanda(comanda: Comanda): void {
+    // Normaliza para evitar erros de array undefined
+    const comandaCorrigida = {
+        ...comanda,
+        itens: Array.isArray(comanda.itens) ? comanda.itens : []
+    };
 
-criarComanda(payload: { mesa: number; nome_cliente: string }): Observable<Comanda> {
-  return this.http.post<Comanda>(`${this.apiUrl}/iniciar-comanda/`, payload);
-}
+    const chave = comanda.eh_principal
+      ? `comanda-${comanda.mesa_numero}`
+      : `comanda-vinculada-${comanda.mesa_numero}`;
 
-criarComandaFilha(idPai: number, payload: { mesa: number; nome_cliente: string }): Observable<Comanda> {
-  return this.http.post<Comanda>(`${this.apiUrl}/pedidos/${idPai}/adicionar_filha/`, payload);
-}
+    this.comandaAtual = comandaCorrigida;
+    this.comandaSubject.next(comandaCorrigida);
+    
+    // Só salva no localStorage se tiver ID real ou se quisermos persistir o rascunho
+    // (Opcional: você pode optar por não salvar rascunho no storage para limpar no F5)
+    localStorage.setItem(chave, JSON.stringify(comandaCorrigida));
 
-
-  buscarPorCodigo(codigo: string): Observable<Comanda[]> {
-  return this.http.get<Comanda[]>(`${this.apiUrl}/pedidos/por-codigo/${codigo}/`).pipe(
-    catchError(error => {
-      console.error('Erro ao buscar comanda por código:', error);
-      return of([]);
-    })
-  );
-}
-
-
-atualizarComandaParcial(id: number, payload: Partial<Comanda>): Observable<Comanda> {
-  return this.http.patch<Comanda>(
-    `${this.apiUrl}/pedidos/${id}/`,
-    payload
-  ).pipe(
-    tap((comandaAtualizada) => {
-      this.setComanda(this.normalizarComanda(comandaAtualizada));
-    })
-  );
-}
-
-restaurarComandaLocal(mesa: number, modoVinculado = false): Comanda | null {
-  const chave = modoVinculado
-    ? `comanda-vinculada-${mesa}`
-    : `comanda-${mesa}`;
-
-  try {
-    const comandaSalva = localStorage.getItem(chave);
-    if (!comandaSalva) return null;
-
-    const comanda: Comanda = JSON.parse(comandaSalva);
-    return this.normalizarComanda(comanda);
-  } catch (error) {
-    console.warn('Erro ao restaurar comanda local:', error);
-    return null;
-  }
-}
-atualizarComanda(comanda: Comanda): Observable<Comanda> {
-  console.log('Comanda recebida para atualização:', comanda);
-  if (!comanda.id) {
-    throw new Error('Comanda sem ID não pode ser atualizada');
+    if (comanda.eh_principal && comanda.codigo_acesso) {
+      localStorage.setItem('codigo-acesso', comanda.codigo_acesso);
+    }
   }
 
-const payload = {
-  nome_cliente: comanda.nome_cliente ?? '',
-  status: comanda.status ?? 'pendente',
-  itens: Array.isArray(comanda.itens)
-    ? comanda.itens.map(item => ({
-        prato: Number(item.prato),
-        quantidade: Number(item.quantidade),
-        observacao: item.observacao || ''
-      }))
-    : []
-};
-  console.log('Payload de itens enviado para atualizarComanda:', payload);
-  return this.atualizarComandaParcial(comanda.id, payload);
-}
-notificarMudancaLocal(): void {
-  if (this.comandaAtual) {
-    this.comandaSubject.next(this.comandaAtual);
+  // Método auxiliar para notificar mudanças feitas no array de itens (bolinha amarela)
+  notificarMudancaLocal(): void {
+    if (this.comandaAtual) {
+      this.comandaSubject.next(this.comandaAtual);
+      // Atualiza o storage para não perder os itens se der F5
+      this.setComanda(this.comandaAtual); 
+    }
   }
-}
+
+  restaurarComandaLocal(mesa: number, modoVinculado = false): Comanda | null {
+    const chave = modoVinculado
+      ? `comanda-vinculada-${mesa}`
+      : `comanda-${mesa}`;
+
+    try {
+      const comandaSalva = localStorage.getItem(chave);
+      if (!comandaSalva) return null;
+      return JSON.parse(comandaSalva);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // --- MÉTODOS DE API (Só serão chamados na confirmação) ---
+
+  criarComanda(payload: { mesa: number; nome_cliente: string }): Observable<Comanda> {
+    return this.http.post<Comanda>(`${this.apiUrl}/iniciar-comanda/`, payload);
+  }
+
+  atualizarComandaParcial(id: number, payload: Partial<Comanda>): Observable<Comanda> {
+    return this.http.patch<Comanda>(`${this.apiUrl}/pedidos/${id}/`, payload)
+      .pipe(tap(atualizada => this.setComanda(atualizada)));
+  }
 }

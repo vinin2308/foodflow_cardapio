@@ -68,7 +68,7 @@ export class HomeComponent implements OnInit {
 
   // --- MODO 1: INICIAR COMANDA NOVA (CORRIGIDO) ---
   iniciarPedido(): void {
-    const mesaId = Number(this.mesa); 
+    const mesaId = Number(this.mesa);
 
     // 1. Validação Básica
     if (!this.mesa || this.mesa < 1) {
@@ -77,38 +77,28 @@ export class HomeComponent implements OnInit {
     }
 
     // 2. Validação Otimista (Frontend)
-    // Se a lista já carregou e a mesa não está nela, bloqueia imediatamente.
     if (this.mesasExistentes.length > 0 && !this.mesasExistentes.includes(mesaId)) {
       alert(`A Mesa ${mesaId} não está cadastrada ou não está ativa no sistema.`);
-      return; 
+      return;
     }
 
-    const nomeCliente = this.nome || ''; 
+    const nomeCliente = this.nome || '';
 
-    // 3. Validação Real (Backend)
-    // Usamos 'criarComanda' para ter acesso ao Observable e esperar a resposta
-    this.comandaService.criarComanda({ mesa: mesaId, nome_cliente: nomeCliente })
-      .subscribe({
-        next: (comanda) => {
-          // SUCESSO: Backend confirmou que a mesa existe e criou o pedido.
-          console.log('Comanda criada com sucesso:', comanda);
+    // 🛑 CORREÇÃO: REMOVIDA A CHAMADA AO BACKEND (criarComanda)
+    // Não criamos nada no banco agora. Apenas passamos os dados para a próxima tela.
 
-          // Atualiza o estado global da aplicação
-          this.comandaService.setComanda(comanda);
+    // Salva no localStorage para persistência (caso dê F5 na próxima tela)
+    localStorage.setItem('mesa-atual', String(mesaId));
+    localStorage.setItem('nome', nomeCliente);
 
-          // 🚀 SOMENTE AQUI fazemos a navegação
-          this.router.navigate(['/cardapio'], { queryParams: { mesa: mesaId, nome: nomeCliente } });
-        },
-        error: (err) => {
-          // ERRO: Backend rejeitou (404 ou 400)
-          console.error('Erro ao iniciar comanda:', err);
-          
-          const msgErro = err.error?.erro || 'Não foi possível iniciar a comanda. Verifique se a mesa existe.';
-          alert(msgErro);
-          
-          // NADA ACONTECE (O usuário continua na Home)
-        }
-      });
+    // 🚀 NAVEGAÇÃO PURA
+    // O CardapioComponent vai ler esses parâmetros da URL e criar o rascunho local (ID 0)
+    this.router.navigate(['/cardapio'], { 
+        queryParams: { 
+            mesa: mesaId, 
+            nome: nomeCliente 
+        } 
+    });
   }
 
   // --- MODO 2: ENTRAR EM COMANDA EXISTENTE ---

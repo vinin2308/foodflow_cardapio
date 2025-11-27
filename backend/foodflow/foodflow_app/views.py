@@ -216,6 +216,8 @@ def pedido_por_codigo(request, codigo):
 
 # No seu arquivo views.py
 
+# views.py
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def iniciar_comanda(request):
@@ -225,13 +227,14 @@ def iniciar_comanda(request):
     try:
         nome_cliente = request.data.get('nome_cliente')
         mesa_numero = request.data.get('mesa')
+        # 1. PEGA OS ITENS DO JSON (Se não tiver, pega lista vazia)
+        itens_data = request.data.get('itens', []) 
 
         if not mesa_numero:
             return Response({'erro': 'O número da mesa é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
 
         mesa_numero = int(mesa_numero)
 
-        # Busca Mesa
         mesa = Mesa.objects.filter(numero=mesa_numero, ativo=True).first()
         if not mesa:
             return Response({'erro': f'A Mesa {mesa_numero} não existe ou não está ativa.'}, status=404)
@@ -245,46 +248,65 @@ def iniciar_comanda(request):
 
         if comanda_existente:
             print(f"Comanda existente encontrada: {comanda_existente.id}")
+            # Se a comanda já existe, podemos optar por adicionar os novos itens nela
+            # ou apenas retornar a comanda atual.
             if nome_cliente and not comanda_existente.nome_cliente:
                 comanda_existente.nome_cliente = nome_cliente
                 comanda_existente.save()
             
-            # RETORNO CORRIGIDO PARA COMANDA EXISTENTE
-            return Response({
-                'id': comanda_existente.id,
-                'codigo_acesso': comanda_existente.codigo_acesso,
-                'mesa_numero': mesa.numero,
-                'nome_cliente': comanda_existente.nome_cliente,
-                'status': comanda_existente.status,
-                'eh_principal': True,
-                'itens': PedidoItemSerializer(comanda_existente.itens.all(), many=True).data
-            })
+            # ATENÇÃO: Se quiser que "Confirmar" adicione itens em comanda aberta, 
+            # você deve copiar a lógica do 'for item in itens_data' para cá também.
+            
+            return Response(PedidoReadSerializer(comanda_existente).data)
 
+        # --- CRIAÇÃO DE NOVA COMANDA ---
         usuario = request.user if request.user.is_authenticated else None
         
-        print("Tentando criar novo pedido...")
-        pedido = Pedido.objects.create(
-            mesa=mesa,
-            criado_por=usuario,
-            nome_cliente=nome_cliente or f"Cliente Mesa {mesa.numero}",
-            status=PedidoStatus.PENDENTE
-        )
+        # 2. USA TRANSACTION PARA GARANTIR QUE SALVA TUDO OU NADA
+        with transaction.atomic():
+            print("Tentando criar novo pedido...")
+            pedido = Pedido.objects.create(
+                mesa=mesa,
+                criado_por=usuario,
+                nome_cliente=nome_cliente or f"Cliente Mesa {mesa.numero}",
+                status=PedidoStatus.PENDENTE
+            )
+            
+            # 3. SALVA OS ITENS NO BANCO
+            if itens_data:
+                print(f"Adicionando {len(itens_data)} itens ao pedido...")
+                for item in itens_data:
+                    prato_id = item.get('prato')
+                    quantidade = item.get('quantidade')
+                    observacao = item.get('observacao', '')
+
+                    if prato_id and quantidade:
+                        # Busca o preço atual do prato para congelar no pedido
+                        prato_obj = Prato.objects.get(pk=prato_id)
+                        
+                        PedidoItem.objects.create(
+                            pedido=pedido,
+                            prato=prato_obj,
+                            quantidade=quantidade,
+                            preco_unitario=prato_obj.preco, # Salva o preço da época
+                            observacao=observacao,
+                            usuario=usuario
+                        )
+
+            # Atualiza status da mesa
+            mesa.status = 'ocupada'
+            mesa.save()
+
         print(f"Pedido criado com sucesso: ID {pedido.id}")
 
-        mesa.status = 'ocupada'
-        mesa.save()
+        # 4. RETORNA O PEDIDO COMPLETO (Recarrega do banco para pegar os itens criados)
+        pedido_final = Pedido.objects.get(id=pedido.id)
+        serializer = PedidoReadSerializer(pedido_final)
 
-        # 🔴 AQUI ESTÁ A MÁGICA QUE CONSERTA TUDO 🔴
-        return Response({
-            'id': pedido.id,                  # O Angular PRECISA desse ID
-            'codigo_acesso': pedido.codigo_acesso,
-            'mesa_numero': mesa.numero,       # O Angular PRECISA desse número
-            'nome_cliente': pedido.nome_cliente,
-            'status': pedido.status,
-            'eh_principal': True,
-            'itens': []                       # Comanda nova começa sem itens
-        }, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    except Prato.DoesNotExist:
+        return Response({'erro': 'Um dos pratos enviados não existe.'}, status=400)
     except Exception as e:
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("ERRO FATAL EM INICIAR_COMANDA:")

@@ -29,22 +29,19 @@ export class CardapioComponent implements OnInit, OnDestroy {
   mesa = '';
   nomeCliente = '';
   codigoAcesso: string | null = null;
-  
   carrinhoAberto = false;
-  tipoComanda: 'principal' | 'vinculada' | null = null;
-
+  
   cardapio: ItemCardapio[] = [];
   categorias: CategoriaCardapio[] = [];
   categoriaAtiva: CategoriaCardapio | null = null;
 
   mostrarModalObservacao = false;
   itemSelecionadoParaObservacao: ItemCardapio | null = null;
-
   quantidadeTotalItens = 0;
 
   constructor(
     private route: ActivatedRoute,
-    public carrinhoService: CarrinhoService, // Public para acessar no template se precisar
+    public carrinhoService: CarrinhoService,
     private pratoService: PratoService,
     private categoriaService: CategoriaService,
     private comandaService: ComandaService,
@@ -52,228 +49,125 @@ export class CardapioComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // 1. Escuta mudanças na URL
     this.route.queryParams
       .pipe(takeUntil(this.destroy$))
       .subscribe(params => {
-        console.log('🔍 Parâmetros da URL:', params);
-
         let mesaUrl = params['mesa'];
-        if (!mesaUrl) {
-          mesaUrl = localStorage.getItem('mesa_atual_cache');
-        }
-
+        if (!mesaUrl) mesaUrl = localStorage.getItem('mesa_atual_cache');
+        
         this.mesa = mesaUrl ? String(mesaUrl) : '';
 
         if (this.mesa) {
           localStorage.setItem('mesa_atual_cache', this.mesa);
-          console.log('✅ Mesa definida como:', this.mesa);
-
           this.nomeCliente = params['nome'] || localStorage.getItem('nome') || '';
-          const modoVinculado = params['principal'] === 'false';
+          
           const mesaNum = Number(this.mesa);
 
           if (!isNaN(mesaNum) && mesaNum > 0) {
-            const comandaLocal = this.comandaService.restaurarComandaLocal(mesaNum, modoVinculado);
+            // Tenta recuperar do cache local
+            const comandaLocal = this.comandaService.restaurarComandaLocal(mesaNum);
 
-            if (!comandaLocal || localStorage.getItem('codigo-acesso')) {
-              this.comandaService.inicializarComanda(mesaNum, this.nomeCliente, modoVinculado);
+            // Verifica se a comanda local é válida e não está paga
+            if (comandaLocal && (comandaLocal.id ?? 0) > 0 && comandaLocal.status !== 'pago') {
+                console.log('🔄 Recuperando comanda existente:', comandaLocal.id);
+                this.comandaService.setComanda(comandaLocal);
             } else {
-              this.comandaService.setComanda(comandaLocal);
+                // Se não tem comanda válida, cria rascunho ZERO km.
+                console.log('✨ Iniciando novo rascunho local (ID=0)...');
+                this.comandaService.setComandaLocalVazia(mesaNum, this.nomeCliente);
+                
+                // Limpa carrinho antigo se necessário
+                // this.carrinhoService.limparCarrinhoLocal(); 
             }
 
-            // Carrega os dados do cardápio
             this.carregarCategorias();
             this.carregarPratos();
           }
         } else {
-          console.error('❌ Nenhuma mesa identificada! A URL deve ter ?mesa=X');
+            console.error('❌ Nenhuma mesa identificada! A URL deve ter ?mesa=X');
         }
       });
 
-    // 2. Escuta mudanças no Carrinho (Para atualizar a bolinha amarela)
-    if (this.carrinhoService.carrinhoSubject) {
-        this.carrinhoService.carrinhoSubject
-        .pipe(takeUntil(this.destroy$))
-        .subscribe(itens => {
-            this.quantidadeTotalItens = itens.reduce((acc, item) => acc + item.quantidade, 0);
-        });
-    }
-
-    // 3. Escuta mudanças na Comanda (Backend)
+    // Atualiza a bolinha amarela ouvindo o ComandaService
     this.comandaService.comanda$
       .pipe(takeUntil(this.destroy$))
       .subscribe(comanda => {
         this.comanda = comanda;
-        this.codigoAcesso = comanda?.codigo_acesso || null;
-        this.tipoComanda = comanda?.eh_principal ? 'principal' : 'vinculada';
-
-        // Atualiza quantidade baseada no backend também
         if (comanda && Array.isArray(comanda.itens)) {
              this.quantidadeTotalItens = comanda.itens.reduce((acc, item) => acc + item.quantidade, 0);
         }
-
-        if (this.codigoAcesso) {
-          localStorage.setItem('codigo-acesso', this.codigoAcesso);
-        }
       });
 
-    // 4. Escuta estado do carrinho (aberto/fechado)
+    // Ouve abertura/fechamento do carrinho
     this.carrinhoService.carrinhoAberto$
       .pipe(takeUntil(this.destroy$))
       .subscribe(aberto => this.carrinhoAberto = aberto);
   }
 
-  // --- MÉTODOS DE CARREGAMENTO ---
-
+  // --- CARREGAMENTO DE DADOS ---
   carregarPratos(): void {
-    this.pratoService.listarPratos()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(pratos => {
+    this.pratoService.listarPratos().pipe(takeUntil(this.destroy$)).subscribe(pratos => {
         this.cardapio = pratos;
-        // Lógica para agrupar categorias se necessário...
-        if (!this.categoriaAtiva && this.categorias.length > 0) {
-             this.categoriaAtiva = this.categorias[0];
-        }
-      });
-  }
-
-  carregarCategorias(): void {
-    this.categoriaService.listarCategorias()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(categorias => {
-        // Converte ID para string se necessário para compatibilidade
-        this.categorias = categorias.map(cat => ({ 
-            ...cat, 
-            id: String(cat.id) 
-        }));
-        
-        if (this.categorias.length > 0) {
-          this.categoriaAtiva = this.categorias[0];
-        }
-      });
-  }
-
-  // --- LÓGICA DA TELA ---
-
-  getItensPorCategoria(categoria: CategoriaCardapio): ItemCardapio[] {
-  if (!categoria) return [];
-
-  return this.cardapio.filter(item => {
-    // 1. Descobre o ID da categoria do prato (seja objeto ou numero)
-    // O backend manda objeto {id: 1, ...}, mas as vezes pode ser só o id 1
-    const categoriaDoPrato = (item.categoria && typeof item.categoria === 'object') 
-      ? (item.categoria as any).id 
-      : item.categoria;
-
-    // 2. Compara tudo como STRING para evitar erro de (1 !== "1")
-    return String(categoriaDoPrato) === String(categoria.id);
-  });
-}
-
-  selecionarCategoria(categoria: CategoriaCardapio): void {
-    this.categoriaAtiva = categoria;
-  }
-
-  // --- ADICIONAR AO CARRINHO ---
-
-  adicionarItem(item: ItemCardapio): void {
-    const mesaNum = Number(this.mesa);
-
-    if (!this.mesa || isNaN(mesaNum) || mesaNum === 0) {
-      alert('⚠️ Erro: Nenhuma mesa identificada. Atualize a página com ?mesa=X na URL.');
-      return;
-    }
-
-    const observacao = '';
-    const quantidade = 1;
-
-    const comandaAtual = this.comandaService.comandaAtualValue;
-
-    if (comandaAtual && comandaAtual.id) {
-      // Já tem comanda, adiciona direto
-      this.carrinhoService.adicionarItem(item, quantidade, observacao);
-    } else {
-      // Cria comanda primeiro
-      console.log('⏳ Criando comanda para mesa ' + mesaNum + ' antes de adicionar...');
-      
-      this.comandaService.criarComanda({ 
-        mesa: mesaNum, 
-        nome_cliente: this.nomeCliente || 'Cliente' 
-      }).subscribe({
-        next: (comanda) => {
-          console.log('✅ Comanda criada com sucesso! ID:', comanda.id);
-          this.comandaService.setComanda(comanda);
-          this.carrinhoService.adicionarItem(item, quantidade, observacao);
-        },
-        error: (err) => {
-          console.error('❌ Erro ao criar comanda:', err);
-          alert('Erro ao iniciar o pedido. Tente recarregar a página.');
-        }
-      });
-    }
-  }
-
-  // --- MODAL DE OBSERVAÇÃO ---
-
-  abrirModalObservacao(item: ItemCardapio): void {
-    this.itemSelecionadoParaObservacao = item;
-    this.mostrarModalObservacao = true;
-  }
-
-  fecharModalObservacao(): void {
-    this.mostrarModalObservacao = false;
-    this.itemSelecionadoParaObservacao = null;
-  }
-
-  adicionarItemComObservacao(observacao: string): void {
-    if (this.itemSelecionadoParaObservacao) {
-      // Aqui assumimos que a comanda já existe ou será tratada pelo adicionarItem
-      // Para simplificar, chamamos o carrinho direto se já tiver comanda, 
-      // ou podemos adaptar a lógica do adicionarItem para aceitar observação.
-      
-      // Melhor prática: Reutilizar a lógica de criação de comanda
-      // Mas como o modal só abre se a tela carregou, assumimos que está ok chamar direto
-      this.carrinhoService.adicionarItem(this.itemSelecionadoParaObservacao, 1, observacao);
-      this.fecharModalObservacao();
-    }
-  }
-
-  // --- OUTRAS AÇÕES ---
-
-  toggleCarrinho(): void {
-    this.carrinhoService.toggleCarrinho();
-  }
-
-  formatarPreco(preco: number): string {
-    return preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  chamarGarcom(): void {
-    const mesaNum = Number(this.mesa);
-    if (!mesaNum || isNaN(mesaNum)) {
-      alert('Mesa não identificada!');
-      return;
-    }
-
-    this.apiService.listarMesas().subscribe({
-      next: (mesas) => {
-        const mesaEncontrada = mesas.find(m => m.numero === mesaNum);
-        if (mesaEncontrada && mesaEncontrada.id) {
-          this.apiService.chamarGarcom(mesaEncontrada.id).subscribe({
-            next: () => alert('🔔 Garçom chamado com sucesso!'),
-            error: () => alert('Erro ao chamar garçom. Tente novamente.')
-          });
-        } else {
-          alert('Mesa não encontrada!');
-        }
-      },
-      error: () => alert('Erro ao buscar mesa.')
+        if (!this.categoriaAtiva && this.categorias.length > 0) this.categoriaAtiva = this.categorias[0];
     });
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+  carregarCategorias(): void {
+    this.categoriaService.listarCategorias().pipe(takeUntil(this.destroy$)).subscribe(cats => {
+        this.categorias = cats.map(c => ({...c, id: String(c.id)}));
+        if (this.categorias.length > 0) this.categoriaAtiva = this.categorias[0];
+    });
   }
+
+  getItensPorCategoria(cat: CategoriaCardapio): ItemCardapio[] {
+    if (!cat) return [];
+    return this.cardapio.filter(item => {
+        const catId = (typeof item.categoria === 'object') ? (item.categoria as any).id : item.categoria;
+        return String(catId) === String(cat.id);
+    });
+  }
+
+  selecionarCategoria(cat: CategoriaCardapio): void {
+    this.categoriaAtiva = cat;
+  }
+
+  // --- ADICIONAR ITEM (Puramente Local) ---
+  adicionarItem(item: ItemCardapio): void {
+  const mesaNum = Number(this.mesa);
+
+  if (!this.mesa || isNaN(mesaNum) || mesaNum === 0) {
+    alert('Erro: Nenhuma mesa identificada.');
+    return;
+  }
+
+  // Verifica se já existe comanda (seja rascunho ou real)
+  const comandaAtual = this.comandaService.comandaAtualValue;
+
+  // Se NÃO existe nada, cria o RASCUNHO LOCAL (ID=0)
+  if (!comandaAtual) {
+    console.log('✨ Criando rascunho local (ID=0)...');
+    this.comandaService.setComandaLocalVazia(mesaNum, this.nomeCliente);
+  }
+
+  // Chama o carrinho (que agora tem a trava e não vai mandar pro backend)
+  this.carrinhoService.adicionarItem(item, 1, '');
+}
+
+  // --- OUTROS ---
+  abrirModalObservacao(item: ItemCardapio) { this.itemSelecionadoParaObservacao = item; this.mostrarModalObservacao = true; }
+  fecharModalObservacao() { this.mostrarModalObservacao = false; this.itemSelecionadoParaObservacao = null; }
+  
+  adicionarItemComObservacao(obs: string) {
+    if (this.itemSelecionadoParaObservacao) {
+        this.carrinhoService.adicionarItem(this.itemSelecionadoParaObservacao, 1, obs);
+        this.fecharModalObservacao();
+    }
+  }
+
+  toggleCarrinho() { this.carrinhoService.toggleCarrinho(); }
+  formatarPreco(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
+  
+  chamarGarcom() { /* ... mantém seu código de garçom ... */ }
+
+  ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 }

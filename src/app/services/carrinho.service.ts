@@ -3,141 +3,100 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ItemCardapio } from '../models/item-cardapio.model';
 import { ComandaService } from './comanda.service';
-import { PedidoPayload } from '../models/pedidos.model';
 import { Comanda } from '../models/comanda.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class CarrinhoService {
   private pratosCardapioSubject = new BehaviorSubject<ItemCardapio[]>([]);
-  private carrinhoAbertoSubject = new BehaviorSubject<boolean>(false);
-  public carrinhoSubject = new BehaviorSubject<any[]>([]);
+  public carrinhoAbertoSubject = new BehaviorSubject<boolean>(false);
   private readonly apiUrl = environment.apiUrl + '/pedidos/';
 
   constructor(
     private http: HttpClient,
     private comandaService: ComandaService
   ) {
-    // Opcional: Se o CardapioComponent já carrega os pratos, isso pode ser redundante, 
-    // mas mal não faz.
     this.carregarPratosCardapio();
   }
 
-  get pratosCardapio$(): Observable<ItemCardapio[]> {
-    return this.pratosCardapioSubject.asObservable();
-  }
-
-  get carrinhoAberto$(): Observable<boolean> {
-    return this.carrinhoAbertoSubject.asObservable();
-  }
+  get carrinhoAberto$(): Observable<boolean> { return this.carrinhoAbertoSubject.asObservable(); }
+  get pratosCardapio$(): Observable<ItemCardapio[]> { return this.pratosCardapioSubject.asObservable(); }
 
   private carregarPratosCardapio(): void {
-    // Ajuste seguro da URL
-    const urlPratos = environment.apiUrl + '/pratos/';
-    this.http.get<ItemCardapio[]>(urlPratos)
+    this.http.get<ItemCardapio[]>(environment.apiUrl + '/pratos/')
       .subscribe(pratos => this.pratosCardapioSubject.next(pratos));
   }
 
-  // --- ADICIONAR ITEM (Corrigido para não criar comanda) ---
+  // --- ADICIONAR ITEM ---
   adicionarItem(item: ItemCardapio, quantidade: number = 1, observacao: string = ''): void {
   const comanda = this.comandaService.comandaAtualValue;
 
-  if (!comanda || !comanda.id) {
-    console.error('Erro Crítico: Tentativa de adicionar item sem comanda iniciada.');
+  // Se não tem comanda, erro (o CardapioComponent já devia ter criado o rascunho)
+  if (!comanda) {
+    console.error('Erro: Comanda não inicializada.');
     return;
   }
 
+  // Garante que o array existe
   if (!Array.isArray(comanda.itens)) comanda.itens = [];
 
-  observacao = observacao || '';
-
-  const existente = comanda.itens.find(i => i.prato === item.id && (i.observacao || '') === observacao);
+  // Lógica de adicionar ao array local
+  const itemExistente = comanda.itens.find(i => i.prato === item.id && (i.observacao || '') === observacao);
   
-  if (existente) {
-    existente.quantidade += quantidade;
+  if (itemExistente) {
+    itemExistente.quantidade += quantidade;
   } else {
     comanda.itens.push({ prato: item.id, quantidade, observacao });
   }
 
-  // 1. Isso garante que a bolinha amarela atualize
-  this.comandaService.notificarMudancaLocal(); 
+  // 1. Atualiza a tela (Bolinha amarela e lista)
+  this.comandaService.notificarMudancaLocal();
 
-  // 2. Salva no backend
-  this.atualizarComandaRealTime(comanda);
-  
-  // 3. COMENTE OU APAGUE ESTA LINHA:
-  // this.abrirCarrinho(); <--- Isso é que fazia abrir sozinho
-}
-
-  removerItem(pratoId: number, observacao: string = ''): void {
-    const comanda = this.comandaService.comandaAtualValue;
-    if (!comanda || !comanda.id) return;
-
-    observacao = observacao || '';
-    comanda.itens = comanda.itens.filter(i => !(i.prato === pratoId && (i.observacao || '') === observacao));
-
-    this.atualizarComandaRealTime(comanda);
+  // 🛑 AQUI ESTÁ A CORREÇÃO: 
+  // Só envia para a cozinha se a comanda JÁ EXISTIR NO SERVIDOR (ID > 0).
+  // Se for rascunho (ID 0), ele SÓ salva localmente e NÃO chama a API.
+  if (comanda.id && comanda.id > 0) {
+      console.log('🔄 Comanda já existe, sincronizando item extra com a cozinha...');
+      this.atualizarComandaRealTime(comanda);
+  } else {
+      console.log('📝 Item adicionado ao rascunho local. Aguardando confirmação...');
   }
+} 
 
-  atualizarQuantidade(pratoId: number, observacao: string, quantidade: number): void {
+  removerItem(pratoId: number, observacao: string = '') {
     const comanda = this.comandaService.comandaAtualValue;
-    if (!comanda || !comanda.id) return;
-
-    observacao = observacao || '';
-    const item = comanda.itens.find(i => i.prato === pratoId && (i.observacao || '') === observacao);
+    if (!comanda) return;
     
-    if (item) {
-      item.quantidade = quantidade;
-      if (item.quantidade <= 0) {
-        this.removerItem(pratoId, observacao);
-      } else {
-        this.atualizarComandaRealTime(comanda);
-      }
+    comanda.itens = comanda.itens.filter(i => !(i.prato === pratoId && (i.observacao || '') === observacao));
+    
+    this.comandaService.notificarMudancaLocal();
+    
+    // ✅ CORREÇÃO AQUI TAMBÉM
+    if ((comanda.id ?? 0) > 0) {
+      this.atualizarComandaRealTime(comanda);
     }
   }
 
-  // --- SINCRONIZAÇÃO COM BACKEND (Corrigido) ---
   private atualizarComandaRealTime(comanda: Comanda) {
-    if (!comanda || !comanda.id) return;
-
-    // Prepara o payload limpo para o Django
     const itensValidos = comanda.itens.map(i => ({
       prato: Number(i.prato),
       quantidade: i.quantidade,
       observacao: i.observacao || ''
     }));
-
-    const payload = { itens: itensValidos };
-
-    // 🚀 O erro estava aqui: Faltava enviar a requisição!
-    this.atualizarComandaParcial(comanda.id, payload).subscribe({
-      next: (comandaAtualizada) => {
-        console.log('Carrinho sincronizado com sucesso');
-        // Opcional: Atualizar o BehaviorSubject do ComandaService se o backend retornar algo novo
-        // this.comandaService.setComanda(comandaAtualizada); 
-      },
-      error: (err) => console.error('Erro ao sincronizar carrinho:', err)
-    });
+    
+    this.http.patch(`${this.apiUrl}${comanda.id}/`, { itens: itensValidos })
+        .subscribe({ error: err => console.error('Erro sync:', err) });
   }
 
-  toggleCarrinho(): void {
-    this.carrinhoAbertoSubject.next(!this.carrinhoAbertoSubject.value);
-  }
-
-  abrirCarrinho(): void {
-    this.carrinhoAbertoSubject.next(true);
-  }
-
-  fecharCarrinho(): void {
-    this.carrinhoAbertoSubject.next(false);
-  }
-
-  confirmarPedidoNoCozinha(payload: PedidoPayload): Observable<any> {
-    const urlCozinha = environment.apiUrl + '/cozinha/';
-    return this.http.post(urlCozinha, payload);
-  }
-
-  atualizarComandaParcial(id: number, payload: any): Observable<any> {
-    return this.http.patch(`${this.apiUrl}${id}/`, payload);
-  }
+  toggleCarrinho() { this.carrinhoAbertoSubject.next(!this.carrinhoAbertoSubject.value); }
+  abrirCarrinho() { this.carrinhoAbertoSubject.next(true); }
+  fecharCarrinho() { this.carrinhoAbertoSubject.next(false); }
+  limparCarrinhoLocal() {
+    // Se quiser, pode limpar o BehaviorSubject de itens também se tiver um separado
+    // Mas principalmente, garante que não tem comanda velha atrapalhando
+    // Como os itens ficam dentro do objeto Comanda, ao resetar a comanda no passo anterior, 
+    // teoricamente já limpa. 
+    // Mas se você tiver um array `itens` solto na classe, limpe ele aqui:
+    // this.itens = []; 
 }
+} 

@@ -164,23 +164,21 @@ export class CarrinhoComponent implements OnInit, OnDestroy {
       // Envia para a rota /iniciar-comanda/
       this.apiService.iniciarComanda(payload).subscribe({
         next: (pedidoCriado) => {
-          this.confirmandoPedido = false;
+  this.confirmandoPedido = false;
 
-          // 1. Salvar código no navegador
-          localStorage.setItem('pedido_ativo', pedidoCriado.codigo_acesso);
+  // 1. O Backend criou o pedido e retornou o ID real (ex: 55)
+  console.log('🚀 Pedido enviado para cozinha! ID:', pedidoCriado.id);
 
-          // 2. Limpar carrinho local
-          if (this.comanda) {
-            this.comanda.itens = []; 
-            this.comandaService.setComanda(this.comanda); 
-          }
+  // 2. Atualizamos o ComandaService com os dados REAIS do backend
+  // Isso transforma o rascunho (ID 0) em comanda oficial (ID 55)
+  this.comandaService.setComanda(pedidoCriado);
 
-          // --- O PULO DO GATO ESTÁ AQUI ---
-          // Navega PRIMEIRO e só fecha o modal DEPOIS que a navegação começar.
-          // Isso impede que a tela pisque ou volte para a Home errado.
-          this.router.navigate(['/acompanhar']).then(() => {
-             this.onFechar(); 
-          });
+  // 3. Salva código e navega
+  localStorage.setItem('pedido_ativo', pedidoCriado.codigo_acesso);
+  
+  this.router.navigate(['/acompanhar']).then(() => {
+      this.onFechar(); 
+  });
         },
         error: (err: any) => {
           this.confirmandoPedido = false;
