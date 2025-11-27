@@ -331,13 +331,7 @@
   }
   
   .item-actions {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .btn-adicionar,
-  .btn-observacao {
-    width: 100%;
+    display: none; /* Oculta as ações no mobile para replicar o layout de referência */
   }
 }
 
@@ -436,19 +430,29 @@
   }
 
   .item-card {
-    flex-direction: column;
+    flex-direction: row;
     padding: 15px;
   }
 
   .item-main-content {
-    flex-direction: column;
-    gap: 10px !important;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  
+  .item-info {
+    flex: 1;
+  }
+
+  .item-actions {
+    display: none; /* Oculta as ações no mobile para replicar o layout de referência */
   }
 
   .item-img-wrapper {
-    width: 100%;
-    height: 200px;
-    order: -1; /* Imagem em cima */
+    width: 100px; /* Tamanho da imagem para o novo layout */
+    height: 100px;
+    order: 0;
+    flex-shrink: 0;
   }
 
   .item-info {
@@ -456,9 +460,7 @@
   }
 
   .item-actions {
-    width: 100%;
-    justify-content: space-between;
-    margin-top: 10px;
+    display: none; /* Oculta as ações no mobile para replicar o layout de referência */
   }
 }
 
@@ -468,7 +470,7 @@
   }
 
   .itens-grid {
-    grid-template-columns: repeat(2, 1fr); /* Duas colunas em tablets */
+    grid-template-columns: 1fr; /* Duas colunas em tablets */
   }
 }
 
@@ -489,8 +491,8 @@
 
 .item-img-wrapper {
   flex-shrink: 0;
-  width: 120px; /* Largura fixa para a imagem */
-  height: 120px; /* Altura fixa para a imagem */
+  width: 150px; /* Largura fixa para a imagem */
+  height: 150px; /* Altura fixa para a imagem */
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
