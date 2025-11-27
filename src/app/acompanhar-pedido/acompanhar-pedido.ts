@@ -83,6 +83,6 @@ export class AcompanharPedidoComponent implements OnInit, OnDestroy {
     if (this.pedido && this.pedido.status === 'entregue') {
       localStorage.removeItem('pedido_ativo');
     }
-    this.router.navigate(['/']);
+    this.router.navigate(['/cardapio']);
   }
 }

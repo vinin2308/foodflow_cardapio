@@ -109,9 +109,18 @@ class CategoriaGerenteViewSet(viewsets.ModelViewSet):
 
 
 class PratoGerenteViewSet(viewsets.ModelViewSet):
-    queryset = Prato.objects.all().order_by('-criado_em')
     serializer_class = PratoGerenteSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Filtra apenas os pratos do gerente logado
+        user = self.request.user
+        return Prato.objects.filter(criado_por=user).order_by('-criado_em')
+
+    def perform_create(self, serializer):
+        # Garante que o prato criado seja do gerente logado
+        serializer.save(criado_por=self.request.user)
+
 
 
 # ============================================================================
