@@ -16,24 +16,32 @@ export class PedidosService {
     return this.http.get<Order[]>(this.apiUrl);
   }
   listarPedidosPendentes(): Observable<Order[]> {
-    return this.http.get<Order[]>(this.apiUrl + 'cozinha/');  // chama /api/pedidos/cozinha/
-}
+    return this.http.get<Order[]>(this.apiUrl + 'cozinha/'); 
+  }
 
   atualizarTempoEStatus(pedidoId: number, tempo: number, status: OrderStatus): Observable<any> {
-  return this.http.patch(this.apiUrl + pedidoId + '/', {
-    tempo_estimado: tempo,
-    status: status
-});
-}
+    return this.http.patch(this.apiUrl + pedidoId + '/', {
+      tempo_estimado: tempo,
+      status: status
+    });
+  }
 
-finalizarPedido(pedidoId: number): Observable<Order> {
-  return this.http.post<Order>(`${this.apiUrl}${pedidoId}/finalizar/`, {});
-}
+  finalizarPedido(pedidoId: number): Observable<Order> {
+    return this.http.post<Order>(`${this.apiUrl}${pedidoId}/finalizar/`, {});
+  }
 
-removerPedido(id: number) {
-  return this.http.delete(`${this.apiUrl}${id}/`);
-}
+  removerPedido(id: number) {
+    return this.http.delete(`${this.apiUrl}${id}/`);
+  }
 
-
-  
+  /**
+   * NOVO MÉTODO: Consulta o status e tempo estimado de um pedido de forma resumida (Polling).
+   * @param codigo O código de acesso do pedido.
+   * @returns Um Observable que retorna o status e tempo estimado.
+   */
+  consultarStatusResumido(codigo: string): Observable<any> {
+    // ⚠️ ATENÇÃO: Ajuste este endpoint para o seu backend.
+    // Exemplo de Endpoint Leve: /api/pedidos/status_resumo/?codigo=YTFZYE
+    return this.http.get<any>(`${this.apiUrl}status_resumo/?codigo=${codigo}`);
+  }
 }

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router'; // Adicionado ActivatedRoute
 import { ApiService } from '../services/api.service'; 
 
 @Component({
@@ -24,23 +24,30 @@ export class AcompanharPedidoComponent implements OnInit, OnDestroy {
 
   constructor(
     private apiService: ApiService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute // Adicionado
   ) {}
 
   ngOnInit() {
-    this.codigo = localStorage.getItem('pedido_ativo');
-    
-    console.log('Código recuperado:', this.codigo); // Log para conferência
+    // Lógica robusta de busca do código (Rota > Query > Storage)
+    const idQuery = this.route.snapshot.queryParamMap.get('id');
+    const idMatrix = this.route.snapshot.paramMap.get('id');
+
+    if (idQuery) {
+        this.codigo = idQuery;
+    } else if (idMatrix) {
+        this.codigo = idMatrix;
+    } else {
+        this.codigo = localStorage.getItem('pedido_ativo');
+    }
 
     if (this.codigo) {
       this.carregarDados();
-      // Polling a cada 5 segundos
       this.intervalo = setInterval(() => this.carregarDados(), 5000);
     } else {
-      // Pequeno delay de segurança antes de expulsar para a home
       console.warn('Código não encontrado, redirecionando...');
       setTimeout(() => {
-        this.router.navigate(['/']);
+        this.router.navigate(['/cardapio']);
       }, 1000);
     }
   }
@@ -53,20 +60,29 @@ export class AcompanharPedidoComponent implements OnInit, OnDestroy {
     if (!this.codigo) return;
     
     this.apiService.consultarStatusPedido(this.codigo).subscribe({
-      // ADICIONADO ': any' PARA EVITAR ERRO DE TIPAGEM
       next: (dados: any) => {
         if (Array.isArray(dados) && dados.length > 0) {
           this.pedido = dados[0];
+          
+          // ATUALIZA O LOCAL STORAGE para o monitor flutuante
+          if (this.pedido && this.pedido.status !== 'entregue') {
+             localStorage.setItem('pedido_em_background', this.pedido.codigo_acesso);
+             localStorage.setItem('status_pedido_background', this.pedido.status);
+             if(this.pedido.tempo_estimado) {
+                localStorage.setItem('tempo_estimado_background', String(this.pedido.tempo_estimado));
+             } else {
+                localStorage.removeItem('tempo_estimado_background');
+             }
+          }
         }
       },
-      // ADICIONADO ': any' PARA EVITAR ERRO DE TIPAGEM
       error: (err: any) => console.error('Erro ao buscar pedido', err)
     });
   }
 
   getStatusLabel(status: string): string {
     const map: any = {
-      'pendente': 'Recebemos seu pedido! Aguarde a confirmação.',
+      'pendente': 'Aguardando confirmação...',
       'em_preparo': 'A cozinha está preparando seu prato 🔥',
       'pronto': 'Seu pedido está PRONTO! 🔔',
       'entregue': 'Pedido Entregue. Bom apetite! 😋'
@@ -79,10 +95,27 @@ export class AcompanharPedidoComponent implements OnInit, OnDestroy {
     return (this.statusProgress[this.pedido.status] || 5) + '%';
   }
 
-  voltarCardapio() {
-    if (this.pedido && this.pedido.status === 'entregue') {
-      localStorage.removeItem('pedido_ativo');
+  // Dentro de src/app/acompanhar-pedido/acompanhar-pedido.component.ts
+
+voltarCardapio() {
+    if (this.pedido && this.pedido.status !== 'entregue') {
+        // Se ainda está ativo/em preparo, salva para monitoramento
+        localStorage.setItem('pedido_em_background', this.pedido.codigo_acesso);
+        localStorage.setItem('status_pedido_background', this.pedido.status);
+        if(this.pedido.tempo_estimado) {
+             localStorage.setItem('tempo_estimado_background', String(this.pedido.tempo_estimado));
+        } else {
+            localStorage.removeItem('tempo_estimado_background');
+        }
+        localStorage.removeItem('pedido_ativo');
+    } else {
+        // AÇÃO CRÍTICA: Se o pedido foi entregue/finalizado, LIMPA TODAS AS CHAVES DE MONITORAMENTO
+        localStorage.removeItem('pedido_ativo');
+        localStorage.removeItem('pedido_em_background');
+        localStorage.removeItem('status_pedido_background');
+        localStorage.removeItem('tempo_estimado_background');
     }
+    
     this.router.navigate(['/cardapio']);
-  }
+}
 }
