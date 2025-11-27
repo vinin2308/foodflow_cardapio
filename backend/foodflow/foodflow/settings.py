@@ -55,15 +55,22 @@ TEMPLATES = [
 WSGI_APPLICATION = 'foodflow.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='foodflow'),
-        'USER': config('DB_USER', default='postgres'),
-        'PASSWORD': config('DB_PASSWORD', default='11022006'),
-        'HOST': config('DB_HOST', default='localhost'),  
-        'PORT': config('DB_PORT', default='5432'),
-    }
+    'default': dj_database_url.config(
+        # 1. Tenta ler a variável DATABASE_URL (que é injetada pelo Kubernetes)
+        default=config('DATABASE_URL', default=None),
+        # 2. Se a variável não existir, usa um fallback seguro
+        conn_max_age=600 # Mantém a conexão viva por 10 minutos (performance)
+    )
 }
+
+# Fallback para desenvolvimento local sem DATABASE_URL
+if not DATABASES['default']:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3', 
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
